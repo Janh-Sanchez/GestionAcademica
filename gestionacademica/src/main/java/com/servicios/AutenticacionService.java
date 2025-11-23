@@ -3,8 +3,8 @@ package com.servicios;
 import com.dominio.TokenUsuario;
 import com.persistencia.entidades.TokenUsuarioEntity;
 import com.persistencia.repositorios.TokenUsuarioRepositorio;
+import com.utilidades.PasswordHashUtil;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
-import org.mindrot.jbcrypt.BCrypt;
 import java.util.Optional;
 
 public class AutenticacionService {
@@ -39,10 +39,11 @@ public class AutenticacionService {
             }
 
             TokenUsuarioEntity tokenEntity = tokenEntityOpt.get();
-            
             // Verificar contraseña con BCrypt
-            if (!BCrypt.checkpw(contrasena, tokenEntity.getContrasena())) {
+
+            if (PasswordHashUtil.checkPassword(tokenEntity.getContrasena(), contrasena)) {
                 intentosFallidos++;
+                System.out.println(intentosFallidos);
                 return new ResultadoAutenticacion(false, null, 
                     "Usuario o contraseña incorrectos, inténtelo nuevamente");
             }

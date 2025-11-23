@@ -2,11 +2,7 @@ package com.presentacion;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import com.servicios.AutenticacionService;
-import com.persistencia.repositorios.TokenUsuarioRepositorio;
-import jakarta.persistence.EntityManager;
-
 public class LoginFrame extends JFrame {
     private JTextField txtUsuario;
     private JPasswordField txtContrasena;

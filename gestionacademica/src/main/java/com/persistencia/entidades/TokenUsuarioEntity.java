@@ -13,7 +13,7 @@ public class TokenUsuarioEntity {
     @Column(name = "nombre_usuario", nullable = false, unique = true, length = 50)
     private String nombreUsuario;
 
-    @Column(name = "contrasena", nullable = false, length = 60)
+    @Column(name = "contrasena", nullable = false, length = 255)
     private String contrasena;
 
     @Column(name = "estado", nullable = false)
