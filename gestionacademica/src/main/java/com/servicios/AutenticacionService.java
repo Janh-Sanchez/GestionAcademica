@@ -41,15 +41,8 @@ public class AutenticacionService {
 
             if (!contrasena.equals(tokenEntity.getContrasena())) {
                 intentosFallidos++;
-                System.out.println(intentosFallidos);
                 return new ResultadoAutenticacion(false, null, 
                     "Usuario o contraseña incorrectos, inténtelo nuevamente");
-            }
-
-            // Verificar que el token esté activo
-            if (!tokenEntity.isEstado()) {
-                return new ResultadoAutenticacion(false, null, 
-                    "La cuenta está inactiva. Contacte al administrador");
             }
 
             // Autenticación exitosa
@@ -63,10 +56,6 @@ public class AutenticacionService {
             return new ResultadoAutenticacion(false, null, 
                 "Hubo un error al acceder a la base de datos, inténtelo nuevamente");
         }
-    }
-
-    public boolean validarToken(TokenUsuario token) {
-        return token != null && token.esActivo();
     }
 
     public int getIntentosFallidos() {

@@ -1,8 +1,5 @@
 package com.dominio;
 
-import java.util.HashSet;
-import java.util.Set;
-
 public class Permiso {
     private Integer idPermiso;
     private String nombre;
@@ -15,9 +12,9 @@ public class Permiso {
 
     public boolean esValido() {
         return nombre != null && !nombre.trim().isEmpty() 
-               && nombre.length() >= 3 && nombre.length() <= 50
-               && descripcion != null && !descripcion.trim().isEmpty()
-               && descripcion.length() >= 10 && descripcion.length() <= 200;
+            && nombre.length() >= 3 && nombre.length() <= 50
+            && descripcion != null && !descripcion.trim().isEmpty()
+            && descripcion.length() >= 10 && descripcion.length() <= 200;
     }
 
     public Integer getIdPermiso() { return idPermiso; }

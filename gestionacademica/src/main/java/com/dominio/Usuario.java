@@ -12,7 +12,7 @@ public class Usuario {
     private TokenUsuario tokenAccess;
 
     public Usuario(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido,
-            String segundoApellido, String correoElectronico, int edad, String telefono,
+            String segundoApellido, int edad, String correoElectronico, String telefono,
             TokenUsuario tokenAccess){
         this.idUsuario = idUsuario;
         this.primerNombre = primerNombre;
@@ -20,7 +20,9 @@ public class Usuario {
         this.primerApellido = primerApellido;
         this.segundoApellido = segundoApellido;
         this.edad = edad;
+        this.correoElectronico = correoElectronico;
         this.telefono = telefono;
+        this.tokenAccess = tokenAccess;
     }
 
     public String obtenerNombreCompleto() {

@@ -51,7 +51,6 @@ public class DominioAPersistenciaMapper {
         entity.setIdToken(token.getIdToken());
         entity.setNombreUsuario(token.getNombreUsuario());
         entity.setContrasena(token.getContrasena());
-        entity.setEstado(token.isEstado());
         entity.setRol(toEntity(token.getRol()));
         return entity;
     }
@@ -64,7 +63,6 @@ public class DominioAPersistenciaMapper {
             toDomain(entity.getRol())
         );
         token.setIdToken(entity.getIdToken());
-        token.setEstado(entity.isEstado());
         return token;
     }
 
