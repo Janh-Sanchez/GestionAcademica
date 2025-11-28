@@ -1,23 +1,27 @@
-package com.dominio;
+package com.persistencia.entidades;
 
-public class HojaVida {
-    // Quizas agregar acudiente
+import jakarta.persistence.*;
+
+@Entity(name = "hoja_vida")
+public class HojaVidaEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "hoja_vida")
     private Integer idHojaVida;
-    private Estudiante estudiante;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estudiante", unique = true)
+    private EstudianteEntity estudiante;
+
+    @ElementCollection
     private String alergias;
+
+    @ElementCollection
     private String aspectosRelevantes;
+
+    @ElementCollection
     private String enfermedades;
-
-    public HojaVida() {
-    }
-
-    public HojaVida(Integer idHojaVida, Estudiante estudiante, String alergias, String aspectosRelevantes, String enfermedades) {
-        this.idHojaVida = idHojaVida;
-        this.estudiante = estudiante;
-        this.alergias = alergias;
-        this.aspectosRelevantes = aspectosRelevantes;
-        this.enfermedades = enfermedades;
-    }
 
     public Integer getIdHojaVida() {
         return idHojaVida;
@@ -27,11 +31,11 @@ public class HojaVida {
         this.idHojaVida = idHojaVida;
     }
 
-    public Estudiante getEstudiante() {
+    public EstudianteEntity getEstudiante() {
         return estudiante;
     }
 
-    public void setEstudiante(Estudiante estudiante) {
+    public void setEstudiante(EstudianteEntity estudiante) {
         this.estudiante = estudiante;
     }
 
@@ -57,9 +61,5 @@ public class HojaVida {
 
     public void setEnfermedades(String enfermedades) {
         this.enfermedades = enfermedades;
-    }
-
-    public void generarHojaDeVida() {
-        // Método de negocio pendiente de implementación
     }
 }

@@ -1,42 +1,68 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.util.SortedSet;
 
-@Entity
-public class Preinscripcion {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+public class Preinscripcion{
     private Integer idPreinscripcion;
-
-    @NotNull
-    @Column(nullable = false)
     private LocalDate fechaRegistro;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private Estado estado = Estado.Pendiente;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "acudiente", referencedColumnName = "idUsuario")
     private Acudiente acudiente;
-
-	@OneToMany(mappedBy = "preinscripcion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private SortedSet<Estudiante> estudiantes;
 
-    public Preinscripcion(){
+    public Preinscripcion(Integer idPreinscripcion, LocalDate fechaRegistro, Estado estado, Acudiente acudiente, SortedSet<Estudiante> estudiantes) {
+        this.idPreinscripcion = idPreinscripcion;
+        this.fechaRegistro = fechaRegistro;
+        this.estado = estado;
+        this.acudiente = acudiente;
+        this.estudiantes = estudiantes;
+    }
 
+    public Integer getIdPreinscripcion() {
+        return idPreinscripcion;
+    }
+
+    public void setIdPreinscripcion(Integer idPreinscripcion) {
+        this.idPreinscripcion = idPreinscripcion;
+    }
+
+    public LocalDate getFechaRegistro() {
+        return fechaRegistro;
+    }
+
+    public void setFechaRegistro(LocalDate fechaRegistro) {
+        this.fechaRegistro = fechaRegistro;
+    }
+
+    public Estado getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Estado estado) {
+        this.estado = estado;
+    }
+
+    public Acudiente getAcudiente() {
+        return acudiente;
+    }
+
+    public void setAcudiente(Acudiente acudiente) {
+        this.acudiente = acudiente;
+    }
+
+    public SortedSet<Estudiante> getEstudiantes() {
+        return estudiantes;
+    }
+
+    public void setEstudiantes(SortedSet<Estudiante> estudiantes) {
+        this.estudiantes = estudiantes;
     }
 
     public void cambiarEstado(Estado nuevoEstado){
-
+        
     }
 
     public boolean validarDatos(){
         return false;
     }
-}//end Preinscripcion
+}

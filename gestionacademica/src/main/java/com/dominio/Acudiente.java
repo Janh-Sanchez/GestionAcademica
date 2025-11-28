@@ -1,25 +1,42 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import java.util.Set;
 
-@Entity
 public class Acudiente extends Usuario {
 
-	@NotNull
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
 	private Estado estadoAprobacion = Estado.Pendiente;
-
-	@OneToMany(mappedBy = "acudiente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private Set<Estudiante> estudiantes;
 
-	public Acudiente(){
-
+	public Acudiente(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido, 
+        String segundoApellido, int edad, String correoElectronico, String telefono, TokenUsuario tokenAccess, Estado estadoAprobacion,  Set<Estudiante> estudiantes){
+		super(idUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, edad, correoElectronico, telefono, tokenAccess);
+		this.estadoAprobacion = estadoAprobacion;
+		this.estudiantes = estudiantes;
 	}
 
-	public void agregarEstudiante(){
+	public Acudiente() {
+		super();
+    }
 
+    public void agregarEstudiante(Estudiante estudiante) throws Exception{
+		if(this.estudiantes.size() >= 5){
+			throw new Exception("Un acudiente no puede tener mas de 5 estudiantes");
+		}
+		if(estudiante == null){
+			throw new IllegalArgumentException("Estudiante no puede ser nulo");
+		}
+		estudiantes.add(estudiante);
 	}
-}//end Acudiente
+
+	public Estado getEstadoAprobacion(){
+		return estadoAprobacion;
+	}
+
+	public void setEstadoAprobacion(Estado estado){
+		this.estadoAprobacion = estado;
+	}
+
+	public Set<Estudiante> getEstudiantes(){
+		return estudiantes;
+	}
+}

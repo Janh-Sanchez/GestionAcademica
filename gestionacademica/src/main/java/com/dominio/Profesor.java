@@ -1,14 +1,31 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-
-@Entity
-public class Profesor extends Usuario {
-
-	@OneToOne(mappedBy = "profesor", fetch = FetchType.LAZY, optional = true)
-	private Grupo grupoAsignado;
-
-	public Profesor(){
-
+public class Profesor extends Usuario{
+    private Grupo grupoAsignado;
+	public Profesor(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido, 
+        String segundoApellido, String correoElectronico, int edad, String telefono, TokenUsuario tokenAccess,
+        Grupo grupoAsignado){
+		super(idUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, edad, correoElectronico, telefono, tokenAccess);
+        this.grupoAsignado = grupoAsignado;
 	}
-}//end Profesor
+
+    public Grupo getGrupo(){
+        return grupoAsignado;
+    }
+
+    public boolean tieneGrupoAsignado(Grupo grupo){
+        if(grupoAsignado != null){
+            return true;
+        }
+        return false;
+    }
+
+    public void AsignarGrupo(Grupo grupo){
+        if(tieneGrupoAsignado(grupo)){
+            System.out.println("El profesor ya tiene un grupo asignado");
+        }
+        else{
+            this.grupoAsignado = grupo;
+        }
+    }
+}

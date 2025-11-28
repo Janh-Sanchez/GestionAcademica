@@ -1,53 +1,62 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-
-@Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
-public abstract class Usuario {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+public class Usuario {
     private Integer idUsuario;
-
-    @Basic
-    @Size(min = 2, max = 30)
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚáéíóúñÑ]+$", message = "El nombre no debe contener números")
-    @Column(nullable = false, length = 30)
     private String primerNombre;
-
-    @Size(min = 2, max = 30)
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚáéíóúñÑ]+$", message = "El nombre no debe contener números")
-    @Column(nullable = true, length = 30)
     private String segundoNombre;
-
-    @Size(min = 2, max = 30)
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚáéíóúñÑ]+$", message = "El nombre no debe contener números")
-    @Column(nullable = false, length = 30)
     private String primerApellido;
-
-    @Size(min = 2, max = 30)
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚáéíóúñÑ]+$", message = "El nombre no debe contener números")
-    @Column(nullable = true, length = 30)
     private String segundoApellido;
-
-    @Email
-    @Column(nullable = false, unique = true)
+    private Integer edad;
     private String correoElectronico;
-
-    @Min(18)
-    @Max(80)
-    @Column(nullable = false)
-    private int edad;
-
-    @Pattern(regexp = "^[0-9]{10}$", message = "Debe tener 10 dígitos numéricos")
-    @Column(nullable = false, unique = true, length = 10)
     private String telefono;
-
-    @OneToOne(cascade = CascadeType.ALL, optional = true)
-    @JoinColumn(name = "tokenAccess", referencedColumnName = "idToken", nullable = true)
     private TokenUsuario tokenAccess;
 
-    public Usuario() {}
+    public Usuario(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido,
+            String segundoApellido, int edad, String correoElectronico, String telefono,
+            TokenUsuario tokenAccess){
+        this.idUsuario = idUsuario;
+        this.primerNombre = primerNombre;
+        this.segundoNombre = segundoNombre;
+        this.primerApellido = primerApellido;
+        this.segundoApellido = segundoApellido;
+        this.edad = edad;
+        this.correoElectronico = correoElectronico;
+        this.telefono = telefono;
+        this.tokenAccess = tokenAccess;
+    }
+
+    public Usuario() {
+    }
+
+    public String obtenerNombreCompleto() {
+        StringBuilder nombre = new StringBuilder(primerNombre);
+        if (segundoNombre != null && !segundoNombre.isEmpty()) {
+            nombre.append(" ").append(segundoNombre);
+        }
+        nombre.append(" ").append(primerApellido);
+        if (segundoApellido != null && !segundoApellido.isEmpty()) {
+            nombre.append(" ").append(segundoApellido);
+        }
+        return nombre.toString();
+    }
+
+    // Getters y Setters
+    public Integer getIdUsuario() { return idUsuario; }
+    public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
+    public String getPrimerNombre() { return primerNombre; }
+    public void setPrimerNombre(String primerNombre) { this.primerNombre = primerNombre; }
+    public String getSegundoNombre() { return segundoNombre; }
+    public void setSegundoNombre(String segundoNombre) { this.segundoNombre = segundoNombre; }
+    public String getPrimerApellido() { return primerApellido; }
+    public void setPrimerApellido(String primerApellido) { this.primerApellido = primerApellido; }
+    public String getSegundoApellido() { return segundoApellido; }
+    public void setSegundoApellido(String segundoApellido) { this.segundoApellido = segundoApellido; }
+    public Integer getEdad() { return edad; }
+    public void setEdad(Integer edad) { this.edad = edad; }
+    public String getCorreoElectronico() { return correoElectronico; }
+    public void setCorreoElectronico(String correoElectronico) { this.correoElectronico = correoElectronico; }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+    public TokenUsuario getTokenAccess() { return tokenAccess; }
+    public void setTokenAccess(TokenUsuario tokenAccess) { this.tokenAccess = tokenAccess; }
 }

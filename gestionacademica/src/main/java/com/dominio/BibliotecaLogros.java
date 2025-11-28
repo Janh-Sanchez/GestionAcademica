@@ -1,37 +1,54 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import java.util.Set;
 
-@Entity
 public class BibliotecaLogros {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer idBibliotecaLogros;
-
-    @NotBlank
-    @Size(min = 10, max = 200)
-    @Column(nullable = false, length = 200)
     private String categoria;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grado", referencedColumnName = "idGrado")
     private Grado grado;
-
-    @OneToMany(mappedBy = "bibliotecaLogros", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Logro> logros;
 
-    public BibliotecaLogros(){
-
+    public BibliotecaLogros(Integer idBibliotecaLogros, String categoria, Grado grado, Set<Logro> logros) {
+        this.idBibliotecaLogros = idBibliotecaLogros;
+        this.categoria = categoria;
+        this.grado = grado;
+        this.logros = logros;
     }
+
+    public Integer getIdBibliotecaLogros() {
+        return idBibliotecaLogros;
+    }
+
+    public void setIdBibliotecaLogros(Integer idBibliotecaLogros) {
+        this.idBibliotecaLogros = idBibliotecaLogros;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public Grado getGrado() {
+        return grado;
+    }
+
+    public void setGrado(Grado grado) {
+        this.grado = grado;
+    }
+
+    public Set<Logro> getLogros() {
+        return logros;
+    }
+
+    public void setLogros(Set<Logro> logros) {
+        this.logros = logros;
+    }
+
 
     public void añadirLogro(Logro logro){
-
+        logros.add(logro);
     }
-
-    public void eliminarLogro(Logro logro){
-
-    }
-}//end BibliotecaLogros
+}

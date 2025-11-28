@@ -1,34 +1,64 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
-@Entity
 public class Observacion {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer idObservacion;
-
-    @NotBlank
-    @Size(min = 10, max = 200)
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String descripcion;
-
-    @NotNull
-    @Column(nullable = false)
     private LocalDate fechaObservacion;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "observador", referencedColumnName = "idObservador")
     private Observador observador;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "profesor", referencedColumnName = "idUsuario")
     private Profesor profesor;
 
-    public Observacion(){
-
+    public Observacion(Integer idObservacion, String descripcion, LocalDate fechaObservacion, Observador observador, Profesor profesor){
+        this.idObservacion = idObservacion;
+        this.descripcion = descripcion;
+        this.fechaObservacion = fechaObservacion;
+        this.observador = observador;
+        this.profesor = profesor;
     }
-}//end Observacion
+
+    // getters y setters
+    public Integer getIdObservacion() {
+        return idObservacion;
+    }
+
+    public void setIdObservacion(Integer idObservacion) {
+        this.idObservacion = idObservacion;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public LocalDate getFechaObservacion() {
+        return fechaObservacion;
+    }
+
+    public void setFechaObservacion(LocalDate fechaObservacion) {
+        this.fechaObservacion = fechaObservacion;
+    }
+
+    public Observador getObservador() {
+        return observador;
+    }
+
+    public void setObservador(Observador observador) {
+        this.observador = observador;
+    }
+
+    public Profesor getProfesor() {
+        return profesor;
+    }
+
+    public void setProfesor(Profesor profesor) {
+        this.profesor = profesor;
+    }
+
+    public boolean esValida(){
+        return (descripcion.length() >= 10 && descripcion.length() <= 200);
+    }
+}

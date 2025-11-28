@@ -1,29 +1,29 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-
-@Entity
 public class Permiso {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer idPermiso;
-
-    @NotBlank
-    @Size(min = 3, max = 50)
-    @Column(nullable = false, unique = true, length = 50)
     private String nombre;
-
-    @Size(max = 10)
-    @Column(length = 200)
     private String descripcion;
 
-    public Permiso(){
-
+    public Permiso(String nombre, String descripcion) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
     }
 
-    public void esValido(){
-
+    public Permiso() {
     }
-}//end Permiso
+
+    public boolean esValido() {
+        return nombre != null && !nombre.trim().isEmpty() 
+            && nombre.length() >= 3 && nombre.length() <= 50
+            && descripcion != null && !descripcion.trim().isEmpty()
+            && descripcion.length() >= 10 && descripcion.length() <= 200;
+    }
+
+    public Integer getIdPermiso() { return idPermiso; }
+    public void setIdPermiso(Integer idPermiso) { this.idPermiso = idPermiso; }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+}

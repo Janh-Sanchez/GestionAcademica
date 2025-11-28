@@ -1,34 +1,43 @@
 package com.dominio;
 
-import jakarta.persistence.*;
 import java.util.SortedSet;
 
-import org.hibernate.annotations.SortNatural;
-
-@Entity
 public class Observador {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer idObservador;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estudiante", unique = true)
     private Estudiante estudiante;
-
-    @OneToMany(mappedBy = "observador", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@SortNatural
     private SortedSet<Observacion> observaciones;
 
-    public Observador(){
+    public Observador(Integer idObservador, Estudiante estudiante, SortedSet<Observacion> observaciones){
+        this.idObservador = idObservador;
+        this.estudiante = estudiante;
+        this.observaciones = observaciones;
+    }
 
+    public Integer getIdObservador() {
+        return idObservador;
+    }
+
+    public void setIdObservador(Integer idObservador) {
+        this.idObservador = idObservador;
+    }
+
+    public Estudiante getEstudiante() {
+        return estudiante;
+    }
+
+    public void setEstudiante(Estudiante estudiante) {
+        this.estudiante = estudiante;
+    }
+
+    public SortedSet<Observacion> getObservaciones() {
+        return observaciones;
+    }
+
+    public void setObservaciones(SortedSet<Observacion> observaciones) {
+        this.observaciones = observaciones;
     }
 
     public void agregarObservacion(Observacion observacion){
-
+        observaciones.add(observacion);
     }
-
-    public void eliminarObservacion(Observacion observacion){
-
-    }
-}//end Observador
+}

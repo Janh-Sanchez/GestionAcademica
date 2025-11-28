@@ -1,41 +1,58 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import java.util.Map;
 import java.util.Set;
-@Entity
-public class Grado {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+public class Grado{
     private Integer idGrado;
-
-    @NotBlank
-    @Size(min = 1, max = 50)
-    @Pattern(regexp = "^[A-Za-z0-9 ÁÉÍÓÚáéíóúñÑ-]+$", message = "Solo letras, números y espacios")
-    @Column(nullable = false, length = 50)
     private String nombreGrado;
-
-	@OneToMany
     private Set<BibliotecaLogros> bibliotecaLogros;
-
-    @OneToMany(mappedBy = "grado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private Set<Grupo> grupos;
 
-    public Grado(){
-
+    public Grado(Integer idGrado, String nombreGrado, Set<BibliotecaLogros> bibliotecaLogros, Set<Grupo> grupos) {
+        this.idGrado = idGrado;
+        this.nombreGrado = nombreGrado;
+        this.bibliotecaLogros = bibliotecaLogros;
+        this.grupos = grupos;
     }
 
-    public void agregarGrupo(Grupo grupo){
+    public Integer getIdGrado() {
+        return idGrado;
+    }
 
+    public void setIdGrado(Integer idGrado) {
+        this.idGrado = idGrado;
+    }
+
+    public String getNombreGrado() {
+        return nombreGrado;
+    }
+
+    public void setNombreGrado(String nombreGrado) {
+        this.nombreGrado = nombreGrado;
+    }
+
+    public Set<BibliotecaLogros> getBibliotecaLogros() {
+        return bibliotecaLogros;
+    }
+
+    public void setBibliotecaLogros(Set<BibliotecaLogros> bibliotecaLogros) {
+        this.bibliotecaLogros = bibliotecaLogros;
+    }
+
+    public Set<Grupo> getGrupos() {
+        return grupos;
+    }
+
+    public void setGrupos(Set<Grupo> grupos) {
+        this.grupos = grupos;
+    }
+
+
+    public void agregarGrupo(Grupo grupo){
+        grupos.add(grupo);
     }
 
     public void eliminarGrupo(Grupo grupo){
-
+        grupos.remove(grupo);
     }
-
-    public Map<String, Grupo> obtenerGrupos(){
-        return null;
-    }
-}//end Grado
+}

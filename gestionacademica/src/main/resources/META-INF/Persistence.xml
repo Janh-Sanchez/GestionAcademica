@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence
+             https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+
+    <persistence-unit name="GestionAcademica" transaction-type="RESOURCE_LOCAL">
+        <!-- Proveedor JPA -->
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- Clases de Persistencia -->
+        <class>com.dominio.Acudiente</class>
+        <class>com.dominio.Administrador</class>
+        <class>com.dominio.BibliotecaLogros</class>
+        <class>com.dominio.Boletin</class>
+        <class>com.dominio.Citacion</class>
+        <class>com.dominio.Directivo</class>
+        <class>com.dominio.Estado</class>
+        <class>com.dominio.Estudiante</class>
+        <class>com.dominio.Grado</class>
+        <class>com.dominio.Grupo</class>
+        <class>com.dominio.HojaVida</class>
+        <class>com.dominio.Logro</class>
+        <class>com.dominio.LogroEstudiante</class>
+        <class>com.dominio.Notificacion</class>
+        <class>com.dominio.Observacion</class>
+        <class>com.dominio.Observador</class>
+        <class>com.persistencia.entidades.PermisoEntity</class>
+        <class>com.dominio.Preinscripcion</class>
+        <class>com.dominio.Profesor</class>
+        <class>com.persistencia.entidades.RolEntity</class>
+        <class>com.persistencia.entidades.TokenUsuarioEntity</class>
+        <class>com.persistencia.entidades.UsuarioEntity</class>
+
+        <!-- Configuración de la conexión con postgresql -->
+        <properties>
+            <property name="jakarta.persistence.validation.mode" value="none"/>
+            <!-- Driver y URL -->
+            <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/GestionAcademica"/>
+            <property name="jakarta.persistence.jdbc.user" value="postgres"/>
+            <property name="jakarta.persistence.jdbc.password" value="Takara"/>
+
+            <!-- Configuración de Hibernate -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+        </properties>
+    </persistence-unit>
+</persistence>

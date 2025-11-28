@@ -1,25 +1,41 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-
-@Entity
 public class Logro {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer idLogro;
-
-    @NotBlank
-    @Size(min = 10, max = 200)
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String descripcion;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bibliotecaLogros", referencedColumnName = "idBibliotecaLogros")
     private BibliotecaLogros bibliotecaLogros;
 
-    public Logro(){
-
+    public Logro(Integer idLogro, String descripcion, BibliotecaLogros bibliotecaLogros) {
+        this.idLogro = idLogro;
+        this.descripcion = descripcion;
+        this.bibliotecaLogros = bibliotecaLogros;
     }
-}//end Logro
+
+    public Integer getIdLogro() {
+        return idLogro;
+    }
+
+    public void setIdLogro(Integer idLogro) {
+        this.idLogro = idLogro;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public BibliotecaLogros getBibliotecaLogros() {
+        return bibliotecaLogros;
+    }
+
+    public void setBibliotecaLogros(BibliotecaLogros bibliotecaLogros) {
+        this.bibliotecaLogros = bibliotecaLogros;
+    }
+
+    public boolean esValida(){
+        return (descripcion.length() >= 10 && descripcion.length() <= 200);
+    }
+}
