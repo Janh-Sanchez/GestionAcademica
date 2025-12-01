@@ -7,7 +7,7 @@ import java.time.LocalDate;
 @Entity(name = "logros_estudiante")
 public class LogroEstudianteEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_logro_estudiante")
     private Integer idLogroEstudiante;
 

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.*;
 public class LogroEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_logro")
     private Integer idLogro;
 

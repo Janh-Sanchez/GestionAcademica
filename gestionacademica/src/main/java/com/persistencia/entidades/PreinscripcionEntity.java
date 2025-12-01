@@ -10,7 +10,7 @@ import com.dominio.Estado;
 @Entity(name = "preinscripcion")
 public class PreinscripcionEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_preinscripcion")
     private Integer idPreinscripcion;
 

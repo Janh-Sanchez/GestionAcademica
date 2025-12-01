@@ -11,7 +11,7 @@ import jakarta.validation.constraints.*;
 public class EstudianteEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_estudiante")
     private Integer idEstudiante;
 

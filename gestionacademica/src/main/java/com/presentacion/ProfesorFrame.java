@@ -4,23 +4,26 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
-
 import com.dominio.Profesor;
+import com.servicios.GestionUsuariosService;
 
 public class ProfesorFrame extends JFrame {
     private Profesor profesor;
+    private GestionUsuariosService gestionService;
+    
     private final Color CB = new Color(255, 212, 160);
     private final Color CBH = new Color(255, 230, 180);
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
 
-    public ProfesorFrame(Profesor profesor) {
+    public ProfesorFrame(Profesor profesor, GestionUsuariosService gestionService) {
         this.profesor = profesor;
+        this.gestionService = gestionService;
         inicializarComponentes();
     }
 
-    public ProfesorFrame() {
-        inicializarComponentes();
+    public ProfesorFrame(Profesor profesor) {
+        this(profesor, new GestionUsuariosService());
     }
 
     private void inicializarComponentes() {
@@ -40,14 +43,35 @@ public class ProfesorFrame extends JFrame {
     }
 
     private JPanel crearPanelSuperior() {
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(CF);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 10, 30));
+
+        // Icono de perfil (CU 2.4)
+        JLabel lblIconoPerfil = new JLabel("👤");
+        lblIconoPerfil.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
+        lblIconoPerfil.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblIconoPerfil.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                consultarMiInformacion();
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                lblIconoPerfil.setForeground(CB);
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                lblIconoPerfil.setForeground(Color.BLACK);
+            }
+        });
+        panel.add(lblIconoPerfil, BorderLayout.WEST);
 
         JLabel lblBienvenida = new JLabel("¡Bienvenido de nuevo " + profesor.obtenerNombreCompleto().toUpperCase() + "!");
         lblBienvenida.setFont(new Font("Arial", Font.BOLD, 18));
         lblBienvenida.setForeground(CT);
-        panel.add(lblBienvenida);
+        lblBienvenida.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(lblBienvenida, BorderLayout.CENTER);
 
         return panel;
     }
@@ -58,7 +82,6 @@ public class ProfesorFrame extends JFrame {
         panel.setBackground(CF);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 30, 50));
 
-        // Imagen educativa
         java.net.URL url = getClass().getResource("/imagenes/profesor.jpg");
         if (url == null) {
             url = getClass().getResource("/imagenes/imagenLogin.jpg");
@@ -73,7 +96,6 @@ public class ProfesorFrame extends JFrame {
 
         panel.add(Box.createVerticalStrut(15));
 
-        // Frase motivacional
         JLabel lblFrase = new JLabel("<html><center>Cada pequeña sonrisa es una gran victoria ¡Gracias por hacer del<br>aprendizaje una aventura hermosa!</center></html>");
         lblFrase.setFont(new Font("Arial", Font.PLAIN, 13));
         lblFrase.setForeground(CT);
@@ -82,14 +104,13 @@ public class ProfesorFrame extends JFrame {
 
         panel.add(Box.createVerticalStrut(20));
 
-        // Panel de botones (2x2)
         JPanel panelBotones = new JPanel(new GridLayout(2, 2, 15, 15));
         panelBotones.setBackground(CF);
         panelBotones.setMaximumSize(new Dimension(550, 150));
 
         panelBotones.add(crearBotonConIcono("ADMINISTRAR\nGRUPOS", "👥", e -> administrarGrupos()));
         panelBotones.add(crearBotonConIcono("ADMINISTRAR HOJA\nDE VIDA", "📄", e -> administrarHojaVida()));
-        panelBotones.add(crearBotonConIcono("CONSULTAR\nOBSERVADOR", "🔍", e -> consultarObservador()));
+        panelBotones.add(crearBotonConIcono("CONSULTAR\nOBSERVADOR", "📝", e -> consultarObservador()));
         panelBotones.add(crearBotonConIcono("ADMINISTRAR\nLOGROS", "🏅", e -> administrarLogros()));
 
         panel.add(panelBotones);
@@ -119,13 +140,18 @@ public class ProfesorFrame extends JFrame {
             public void mouseEntered(MouseEvent e) {
                 boton.setBackground(CBH);
             }
-
             public void mouseExited(MouseEvent e) {
                 boton.setBackground(CB);
             }
         });
 
         return boton;
+    }
+
+    private void consultarMiInformacion() {
+        ConsultarInformacionDialog dialogo = new ConsultarInformacionDialog(
+            this, profesor, gestionService);
+        dialogo.setVisible(true);
     }
 
     private void administrarGrupos() {

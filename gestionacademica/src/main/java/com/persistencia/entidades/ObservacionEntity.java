@@ -8,7 +8,7 @@ import java.time.LocalDate;
 public class ObservacionEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_observacion")
     private Integer idObservacion;
 

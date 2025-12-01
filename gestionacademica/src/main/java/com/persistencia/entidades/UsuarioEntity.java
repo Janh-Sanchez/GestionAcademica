@@ -7,7 +7,7 @@ import jakarta.validation.constraints.*;
 @Inheritance(strategy = InheritanceType.JOINED)
 public class UsuarioEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_usuario")
     private Integer idUsuario;
 

@@ -28,7 +28,7 @@ public class Usuario {
     public Usuario() {
     }
 
-    public String obtenerNombreCompleto() {
+	public String obtenerNombreCompleto() {
         StringBuilder nombre = new StringBuilder(primerNombre);
         if (segundoNombre != null && !segundoNombre.isEmpty()) {
             nombre.append(" ").append(segundoNombre);

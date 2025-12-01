@@ -8,7 +8,7 @@ import java.util.Set;
 public class BibliotecaLogrosEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_biblioteca_logros")
     private Integer idBibliotecaLogros;
 

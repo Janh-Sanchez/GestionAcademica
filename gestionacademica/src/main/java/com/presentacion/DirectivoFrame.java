@@ -5,21 +5,25 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 import com.dominio.Usuario;
+import com.servicios.GestionUsuariosService;
 
 public class DirectivoFrame extends JFrame {
     private Usuario directivo;
+    private GestionUsuariosService gestionService;
+    
     private final Color CB = new Color(255, 212, 160);
     private final Color CBH = new Color(255, 230, 180);
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
 
-    public DirectivoFrame(Usuario directivo) {
+    public DirectivoFrame(Usuario directivo, GestionUsuariosService gestionService) {
         this.directivo = directivo;
+        this.gestionService = gestionService;
         inicializarComponentes();
     }
 
-    public DirectivoFrame() {
-        inicializarComponentes();
+    public DirectivoFrame(Usuario directivo) {
+        this(directivo, new GestionUsuariosService());
     }
 
     private void inicializarComponentes() {
@@ -39,15 +43,36 @@ public class DirectivoFrame extends JFrame {
     }
 
     private JPanel crearPanelSuperior() {
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(CF);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 10, 30));
+
+        // Icono de perfil (CU 2.4)
+        JLabel lblIconoPerfil = new JLabel("👤");
+        lblIconoPerfil.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
+        lblIconoPerfil.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblIconoPerfil.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                consultarMiInformacion();
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                lblIconoPerfil.setForeground(CB);
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                lblIconoPerfil.setForeground(Color.BLACK);
+            }
+        });
+        panel.add(lblIconoPerfil, BorderLayout.WEST);
 
         JLabel lblBienvenida = new JLabel("¡Bienvenido de nuevo " + 
             directivo.obtenerNombreCompleto().toUpperCase() + "!");
         lblBienvenida.setFont(new Font("Arial", Font.BOLD, 18));
         lblBienvenida.setForeground(CT);
-        panel.add(lblBienvenida);
+        lblBienvenida.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(lblBienvenida, BorderLayout.CENTER);
 
         return panel;
     }
@@ -70,7 +95,6 @@ public class DirectivoFrame extends JFrame {
 
         panel.add(Box.createVerticalStrut(15));
 
-        // Frase
         JLabel lblFrase = new JLabel("<html><center>Cada decisión que tomamos construye el camino para que nuestros<br>niños aprendan, sueñen y prosperen</center></html>");
         lblFrase.setFont(new Font("Arial", Font.PLAIN, 13));
         lblFrase.setForeground(CT);
@@ -79,7 +103,6 @@ public class DirectivoFrame extends JFrame {
 
         panel.add(Box.createVerticalStrut(20));
 
-        // Panel de botones (2 filas)
         JPanel panelBotones = new JPanel(new GridLayout(3, 2, 15, 15));
         panelBotones.setBackground(CF);
         panelBotones.setMaximumSize(new Dimension(650, 200));
@@ -87,7 +110,7 @@ public class DirectivoFrame extends JFrame {
         panelBotones.add(crearBotonConIcono("CONSULTAR LISTA\nDE ASPIRANTES", "📋", e -> consultarAspirantes()));
         panelBotones.add(crearBotonConIcono("ADMINISTRAR\nGRUPOS", "👥", e -> administrarGrupos()));
         panelBotones.add(crearBotonConIcono("ADMINISTRAR HOJA\nDE VIDA", "📄", e -> administrarHojaVida()));
-        panelBotones.add(crearBotonConIcono("CONSULTAR\nOBSERVADOR", "🔍", e -> consultarObservador()));
+        panelBotones.add(crearBotonConIcono("CONSULTAR\nOBSERVADOR", "📝", e -> consultarObservador()));
         panelBotones.add(crearBotonConIcono("ADMINISTRAR\nLOGROS", "🏅", e -> administrarLogros()));
 
         panel.add(panelBotones);
@@ -96,18 +119,15 @@ public class DirectivoFrame extends JFrame {
     }
 
     private JButton crearBotonConIcono(String texto, String icono, java.awt.event.ActionListener accion) {
-        // Crear panel que contendrá icono y texto
         JButton boton = new JButton();
         boton.setLayout(new BorderLayout(10, 5));
         boton.setBackground(CB);
         boton.setFocusPainted(false);
         boton.setBorderPainted(false);
 
-        // Icono
         JLabel lblIcono = new JLabel(icono, SwingConstants.CENTER);
         lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
 
-        // Texto
         JLabel lblTexto = new JLabel("<html><center>" + texto.replace("\n", "<br>") + "</center></html>", SwingConstants.CENTER);
         lblTexto.setFont(new Font("Arial", Font.BOLD, 12));
         lblTexto.setForeground(CT);
@@ -120,13 +140,18 @@ public class DirectivoFrame extends JFrame {
             public void mouseEntered(MouseEvent e) {
                 boton.setBackground(CBH);
             }
-
             public void mouseExited(MouseEvent e) {
                 boton.setBackground(CB);
             }
         });
 
         return boton;
+    }
+
+    private void consultarMiInformacion() {
+        ConsultarInformacionDialog dialogo = new ConsultarInformacionDialog(
+            this, directivo, gestionService);
+        dialogo.setVisible(true);
     }
 
     private void consultarAspirantes() {

@@ -9,7 +9,7 @@ import org.hibernate.annotations.SortNatural;
 public class ObservadorEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_observador")
     private Integer idObservador;
 
