@@ -3,20 +3,20 @@ package com.presentacion;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+
 import javax.swing.*;
 import com.dominio.Acudiente;
 import com.dominio.Estudiante;
-import com.dominio.Usuario;
 
 public class AcudienteFrame extends JFrame {
-    private Usuario acudiente;
+    private Acudiente acudiente;
     private JComboBox<String> comboEstudiantes;
     private final Color CB = new Color(255, 212, 160);
     private final Color CBH = new Color(255, 230, 180);
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
 
-    public AcudienteFrame(Usuario acudiente) {
+    public AcudienteFrame(Acudiente acudiente) {
         this.acudiente = acudiente;
         inicializarComponentes();
     }
@@ -46,8 +46,12 @@ public class AcudienteFrame extends JFrame {
         panel.setBackground(CF);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 10, 30));
 
-        JLabel lblBienvenida = new JLabel("¡Bienvenida de nuevo ");
-            // acudiente.obtenerNombreCompleto().toUpperCase() + "!");
+        String nombreCompleto = "USUARIO";
+        if (acudiente != null) {
+            nombreCompleto = acudiente.obtenerNombreCompleto().toUpperCase();
+        }
+        
+        JLabel lblBienvenida = new JLabel("¡Bienvenida de nuevo " + nombreCompleto + "!");
         lblBienvenida.setFont(new Font("Arial", Font.BOLD, 18));
         lblBienvenida.setForeground(CT);
         panel.add(lblBienvenida);
@@ -113,21 +117,34 @@ public class AcudienteFrame extends JFrame {
         panelInterno.setLayout(new BoxLayout(panelInterno, BoxLayout.Y_AXIS));
         panelInterno.setBackground(CF);
 
-        // Cargar estudiantes
-        String[] nombresEstudiantes = acudiente.getEstudiantes();
-
-        if (nombresEstudiantes.length == 0) {
-            nombresEstudiantes = new String[]{"Sin estudiantes registrados"};
+        // Crear modelo del combo con nombres de estudiantes
+        DefaultComboBoxModel<String> modelo = new DefaultComboBoxModel<>();
+        
+        // Cargar estudiantes si existen
+        if (acudiente != null && acudiente.getEstudiantes() != null && !acudiente.getEstudiantes().isEmpty()) {
+            for (Estudiante estudiante : acudiente.getEstudiantes()) {
+                String nombreCompleto = estudiante.getPrimerNombre() + " " + estudiante.getPrimerApellido();
+                if (estudiante.getSegundoNombre() != null && !estudiante.getSegundoNombre().isEmpty()) {
+                    nombreCompleto = estudiante.getPrimerNombre() + " " + estudiante.getSegundoNombre() + " " + estudiante.getPrimerApellido();
+                }
+                if (estudiante.getSegundoApellido() != null && !estudiante.getSegundoApellido().isEmpty()) {
+                    nombreCompleto += " " + estudiante.getSegundoApellido();
+                }
+                modelo.addElement(nombreCompleto);
+            }
+        } else {
+            // Sin estudiantes - agregar opción por defecto
+            modelo.addElement("Sin estudiantes registrados");
         }
 
-        comboEstudiantes = new JComboBox<>(nombresEstudiantes);
+        comboEstudiantes = new JComboBox<>(modelo);
         comboEstudiantes.setFont(new Font("Arial", Font.PLAIN, 14));
         comboEstudiantes.setBackground(Color.WHITE);
         comboEstudiantes.setForeground(CT);
         comboEstudiantes.setMaximumSize(new Dimension(300, 35));
         comboEstudiantes.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Agregar borde con flechita
+        // Agregar borde
         comboEstudiantes.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(CB, 2),
             BorderFactory.createEmptyBorder(5, 10, 5, 10)

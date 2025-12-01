@@ -39,4 +39,8 @@ public class Acudiente extends Usuario {
 	public Set<Estudiante> getEstudiantes(){
 		return estudiantes;
 	}
+
+	public void setEstudiantes(Set<Estudiante> estudiantes){
+		this.estudiantes = estudiantes;
+	}
 }

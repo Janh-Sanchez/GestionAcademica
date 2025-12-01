@@ -16,14 +16,11 @@ public class TokenUsuarioEntity {
     @Column(name = "contrasena", nullable = false, length = 255)
     private String contrasena;
 
-    @Column(name = "estado", nullable = false)
-    private boolean estado;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_rol", nullable = false)
     private RolEntity rol;
 
-    @OneToOne(mappedBy = "tokenAccess")
+    @OneToOne(mappedBy = "tokenAccess", fetch = FetchType.LAZY)
     private UsuarioEntity usuario;
 
     public TokenUsuarioEntity() {}
@@ -35,8 +32,6 @@ public class TokenUsuarioEntity {
     public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
     public String getContrasena() { return contrasena; }
     public void setContrasena(String contrasena) { this.contrasena = contrasena; }
-    public boolean isEstado() { return estado; }
-    public void setEstado(boolean estado) { this.estado = estado; }
     public RolEntity getRol() { return rol; }
     public void setRol(RolEntity rol) { this.rol = rol; }
     public UsuarioEntity getUsuario() { return usuario; }

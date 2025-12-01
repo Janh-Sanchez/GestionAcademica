@@ -177,14 +177,14 @@ public class LoginFrame extends JFrame {
         }
 
         try {
-            Optional<TokenUsuario> tokenOptional = autenticacionService.iniciarSesion(usuario, contrasena);
+            Optional<Usuario> usuarioBDOpt = autenticacionService.iniciarSesion(usuario, contrasena);
             
-            if (tokenOptional.isPresent()) {
+            if (usuarioBDOpt.isPresent()) {
                 // Login exitoso
                 lblError.setVisible(false);
-                TokenUsuario tokenUsuario = tokenOptional.get();
+                Usuario usuarioBD = usuarioBDOpt.get();
                 this.dispose();
-                navegarPorRol(tokenUsuario);
+                navegarPorRol(usuarioBD);
             } else {
                 // Credenciales incorrectas
                 int intentosRestantes = autenticacionService.getIntentosRestantes();
@@ -217,35 +217,30 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    private void navegarPorRol(TokenUsuario token) {
-        String nombreRol = token.getRol().getNombre().toLowerCase();
-        
+    private void navegarPorRol(Usuario usuario) {        
         SwingUtilities.invokeLater(() -> {
             JFrame ventanaDestino = null;
             
-            switch (nombreRol) {
-                case "administrador":
-                    ventanaDestino = new AdministradorFrame();
-                    break;
-                case "directivo":
-                    ventanaDestino = new DirectivoFrame();
-                    break;
-                case "acudiente":
-                    ventanaDestino = new AcudienteFrame();
-                    break;
-                case "profesor":
-                    ventanaDestino = new ProfesorFrame();
-                    break;
-                default:
-                    JOptionPane.showMessageDialog(null,
-                        "Rol no reconocido: " + nombreRol,
-                        "Error de navegación",
-                        JOptionPane.ERROR_MESSAGE);
-                    return;
+            if (usuario instanceof Administrador administrador){
+                ventanaDestino = new AdministradorFrame(administrador);
+                
+            } else if (usuario instanceof Directivo directivo){
+                ventanaDestino = new DirectivoFrame(directivo);
+                
+            } else if (usuario instanceof Acudiente acudiente){
+                ventanaDestino = new AcudienteFrame(acudiente);
+                
+            } else if (usuario instanceof Profesor profesor){
+                ventanaDestino = new ProfesorFrame(profesor);
             }
-            
+                
             if (ventanaDestino != null) {
                 ventanaDestino.setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(null, 
+                    "Tipo de usuario no soportado: " + usuario.getClass().getSimpleName(),
+                    "Error de navegación", 
+                    JOptionPane.ERROR_MESSAGE);
             }
         });
     }

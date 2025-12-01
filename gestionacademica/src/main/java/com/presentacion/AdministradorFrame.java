@@ -4,16 +4,17 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
-import com.dominio.Usuario;
+
+import com.dominio.Administrador;
 
 public class AdministradorFrame extends JFrame {
-    private Usuario administrador;
+    private Administrador administrador;
     private final Color CB = new Color(255, 212, 160);
     private final Color CBH = new Color(255, 230, 180);
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
 
-    public AdministradorFrame(Usuario administrador) {
+    public AdministradorFrame(Administrador administrador) {
         this.administrador = administrador;
         inicializarComponentes();
     }
@@ -46,7 +47,7 @@ public class AdministradorFrame extends JFrame {
         panel.setBackground(CF);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 10, 30));
 
-        JLabel lblBienvenida = new JLabel("¡Bienvenido de nuevo ADMINISTRADOR!");
+        JLabel lblBienvenida = new JLabel("¡Bienvenido de nuevo " + administrador.obtenerNombreCompleto().toUpperCase() + "!");
         lblBienvenida.setFont(new Font("Arial", Font.BOLD, 20));
         lblBienvenida.setForeground(CT);
         panel.add(lblBienvenida);
