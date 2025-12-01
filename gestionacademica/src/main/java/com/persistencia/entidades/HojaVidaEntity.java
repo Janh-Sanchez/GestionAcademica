@@ -7,20 +7,17 @@ public class HojaVidaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "hoja_vida")
+    @Column(name = "id_hoja_vida")
     private Integer idHojaVida;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estudiante", unique = true)
     private EstudianteEntity estudiante;
 
-    @ElementCollection
     private String alergias;
 
-    @ElementCollection
     private String aspectosRelevantes;
 
-    @ElementCollection
     private String enfermedades;
 
     public Integer getIdHojaVida() {

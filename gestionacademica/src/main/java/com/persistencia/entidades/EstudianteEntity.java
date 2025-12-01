@@ -52,19 +52,19 @@ public class EstudianteEntity {
     private Estado estado = Estado.Pendiente;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "acudiente", nullable = false, referencedColumnName = "idUsuario")
+    @JoinColumn(name = "acudiente", nullable = false, referencedColumnName = "id_usuario")
     private AcudienteEntity acudiente;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "gradoAspira", referencedColumnName = "idGrado")
+    @JoinColumn(name = "gradoAspira", referencedColumnName = "id_grado")
     private GradoEntity gradoAspira;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grupo", referencedColumnName = "idGrupo")
+    @JoinColumn(name = "grupo", referencedColumnName = "id_grupo")
     private GrupoEntity grupo;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "hojaDeVida", unique = true, referencedColumnName = "idHojaVida")
+    @JoinColumn(name = "hojaDeVida", unique = true, referencedColumnName = "id_hoja_vida")
     private HojaVidaEntity hojaDeVida;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -78,7 +78,7 @@ public class EstudianteEntity {
 	private Set<BoletinEntity> boletines;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "preinscripcion_id", referencedColumnName = "idPreinscripcion")
+	@JoinColumn(name = "preinscripcion_id", referencedColumnName = "id_preinscripcion")
 	private PreinscripcionEntity preinscripcion;
 
     public Integer getIdEstudiante() { return idEstudiante; }

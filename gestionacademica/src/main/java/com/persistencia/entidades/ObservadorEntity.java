@@ -10,6 +10,7 @@ public class ObservadorEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id_observador")
     private Integer idObservador;
 
     @OneToOne(fetch = FetchType.LAZY)

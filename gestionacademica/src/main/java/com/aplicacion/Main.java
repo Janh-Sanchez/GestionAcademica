@@ -1,9 +1,11 @@
-package com.example;
+package com.aplicacion;
 
 import jakarta.persistence.EntityManager;
 import com.presentacion.LoginFrame;
 import com.servicios.AutenticacionService;
 import com.persistencia.repositorios.TokenUsuarioRepositorio;
+import com.persistencia.repositorios.UsuarioRepositorio;
+
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 public class Main {
@@ -19,7 +21,8 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             EntityManager entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
             TokenUsuarioRepositorio tokenRepositorio = new TokenUsuarioRepositorio(entityManager);
-            AutenticacionService autenticacionService = new AutenticacionService(tokenRepositorio);
+            UsuarioRepositorio usuarioRepositorio = new UsuarioRepositorio(entityManager);
+            AutenticacionService autenticacionService = new AutenticacionService(tokenRepositorio, usuarioRepositorio);
             
             LoginFrame loginFrame = new LoginFrame(autenticacionService);
             loginFrame.setVisible(true);

@@ -6,10 +6,14 @@ public class TokenUsuario {
     private String contrasena;
     private Rol rol;
 
-    public TokenUsuario(String nombreUsuario, String contrasena, Rol rol) {
+    public TokenUsuario(Integer idToken, String nombreUsuario, String contrasena, Rol rol) {
+        this.idToken = idToken;
         this.nombreUsuario = nombreUsuario;
         this.contrasena = contrasena;
         this.rol = rol;
+    }
+
+    public TokenUsuario() {
     }
 
     // Verificar credenciales

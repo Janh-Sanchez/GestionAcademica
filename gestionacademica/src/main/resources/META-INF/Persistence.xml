@@ -10,25 +10,22 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <!-- Clases de Persistencia -->
-        <class>com.dominio.Acudiente</class>
-        <class>com.dominio.Administrador</class>
-        <class>com.dominio.BibliotecaLogros</class>
-        <class>com.dominio.Boletin</class>
-        <class>com.dominio.Citacion</class>
-        <class>com.dominio.Directivo</class>
-        <class>com.dominio.Estado</class>
-        <class>com.dominio.Estudiante</class>
-        <class>com.dominio.Grado</class>
-        <class>com.dominio.Grupo</class>
-        <class>com.dominio.HojaVida</class>
-        <class>com.dominio.Logro</class>
-        <class>com.dominio.LogroEstudiante</class>
-        <class>com.dominio.Notificacion</class>
-        <class>com.dominio.Observacion</class>
-        <class>com.dominio.Observador</class>
+        <class>com.persistencia.entidades.AcudienteEntity</class>
+        <class>com.persistencia.entidades.AdministradorEntity</class>
+        <class>com.persistencia.entidades.BibliotecaLogrosEntity</class>
+        <class>com.persistencia.entidades.BoletinEntity</class>
+        <class>com.persistencia.entidades.DirectivoEntity</class>
+        <class>com.persistencia.entidades.EstudianteEntity</class>
+        <class>com.persistencia.entidades.GradoEntity</class>
+        <class>com.persistencia.entidades.GrupoEntity</class>
+        <class>com.persistencia.entidades.HojaVidaEntity</class>
+        <class>com.persistencia.entidades.LogroEntity</class>
+        <class>com.persistencia.entidades.LogroEstudianteEntity</class>
+        <class>com.persistencia.entidades.ObservacionEntity</class>
+        <class>com.persistencia.entidades.ObservadorEntity</class>
         <class>com.persistencia.entidades.PermisoEntity</class>
-        <class>com.dominio.Preinscripcion</class>
-        <class>com.dominio.Profesor</class>
+        <class>com.persistencia.entidades.PreinscripcionEntity</class>
+        <class>com.persistencia.entidades.ProfesorEntity</class>
         <class>com.persistencia.entidades.RolEntity</class>
         <class>com.persistencia.entidades.TokenUsuarioEntity</class>
         <class>com.persistencia.entidades.UsuarioEntity</class>

@@ -9,6 +9,7 @@ public class ObservacionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id_observacion")
     private Integer idObservacion;
 
     @NotBlank

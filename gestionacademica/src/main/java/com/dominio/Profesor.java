@@ -9,6 +9,10 @@ public class Profesor extends Usuario{
         this.grupoAsignado = grupoAsignado;
 	}
 
+    public Profesor(){
+        super();
+    }
+
     public Grupo getGrupo(){
         return grupoAsignado;
     }
@@ -20,7 +24,7 @@ public class Profesor extends Usuario{
         return false;
     }
 
-    public void AsignarGrupo(Grupo grupo){
+    public void setGrupo(Grupo grupo){
         if(tieneGrupoAsignado(grupo)){
             System.out.println("El profesor ya tiene un grupo asignado");
         }

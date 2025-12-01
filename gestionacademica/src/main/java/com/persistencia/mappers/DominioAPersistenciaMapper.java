@@ -47,6 +47,7 @@ public class DominioAPersistenciaMapper {
         return rol;
     }
 
+    // ✅ CORRECCIÓN CRÍTICA: No convertir el usuario para evitar recursión infinita
     public static TokenUsuarioEntity toEntity(TokenUsuario token) {
         if (token == null) return null;
         TokenUsuarioEntity entity = new TokenUsuarioEntity();
@@ -57,20 +58,21 @@ public class DominioAPersistenciaMapper {
         return entity;
     }
 
+    // ✅ CORRECCIÓN CRÍTICA: No convertir el usuario para evitar recursión infinita
     public static TokenUsuario toDomain(TokenUsuarioEntity entity) {
         if (entity == null) return null;
         TokenUsuario token = new TokenUsuario(
+            entity.getIdToken(),
             entity.getNombreUsuario(),
             entity.getContrasena(),
             toDomain(entity.getRol())
         );
-        token.setIdToken(entity.getIdToken());
         return token;
     }
 
-    public static UsuarioEntity toEntity(Usuario usuario) {
-        if (usuario == null) return null;
-        UsuarioEntity entity = new UsuarioEntity();
+    private static void mapUsuarioToEntity(Usuario usuario, UsuarioEntity entity) {
+        if (usuario == null || entity == null) return;
+        
         entity.setIdUsuario(usuario.getIdUsuario());
         entity.setPrimerNombre(usuario.getPrimerNombre());
         entity.setSegundoNombre(usuario.getSegundoNombre());
@@ -80,83 +82,165 @@ public class DominioAPersistenciaMapper {
         entity.setCorreoElectronico(usuario.getCorreoElectronico());
         entity.setTelefono(usuario.getTelefono());
         entity.setTokenAccess(toEntity(usuario.getTokenAccess()));
+    }
+
+    private static void mapEntityToUsuario(UsuarioEntity entity, Usuario usuario) {
+        if (entity == null || usuario == null) return;
+        
+        usuario.setIdUsuario(entity.getIdUsuario());
+        usuario.setPrimerNombre(entity.getPrimerNombre());
+        usuario.setSegundoNombre(entity.getSegundoNombre());
+        usuario.setPrimerApellido(entity.getPrimerApellido());
+        usuario.setSegundoApellido(entity.getSegundoApellido());
+        usuario.setEdad(entity.getEdad());
+        usuario.setCorreoElectronico(entity.getCorreoElectronico());
+        usuario.setTelefono(entity.getTelefono());
+        // ✅ Esto es seguro porque toDomain(TokenUsuarioEntity) ya no convierte el usuario
+        usuario.setTokenAccess(toDomain(entity.getTokenAccess()));
+    }
+    
+    // ==================== ACUDIENTE ====================
+    public static AcudienteEntity toEntity(Acudiente acudiente) {
+        if (acudiente == null) return null;
+        
+        AcudienteEntity entity = new AcudienteEntity();
+        mapUsuarioToEntity(acudiente, entity); // ← ✅ Ya mapea todos los campos básicos
+        entity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
+        
+        if (acudiente.getEstudiantes() != null) {
+            Set<EstudianteEntity> estudiantesEntities = acudiente.getEstudiantes().stream()
+                .map(est -> {
+                    EstudianteEntity estEntity = new EstudianteEntity();
+                    estEntity.setIdEstudiante(est.getIdEstudiante());
+                    return estEntity;
+                })
+                .collect(Collectors.toSet());
+            entity.setEstudiantes(estudiantesEntities);
+        }
+        
         return entity;
     }
 
-    public static Usuario toDomain(UsuarioEntity entity) {
+    public static Acudiente toDomain(AcudienteEntity entity) {
         if (entity == null) return null;
-        Usuario usuario = new Usuario(
-            entity.getIdUsuario(),
-            entity.getPrimerNombre(),
-            entity.getSegundoNombre(),
-            entity.getPrimerApellido(),
-            entity.getSegundoApellido(),
-            entity.getEdad(),
-            entity.getCorreoElectronico(),
-            entity.getTelefono(),
-            toDomain(entity.getTokenAccess())
-        );
-        return usuario;
+        
+        Acudiente acudiente = new Acudiente();
+        mapEntityToUsuario(entity, acudiente); // ← ✅ Ya mapea todos los campos básicos
+        acudiente.setEstadoAprobacion(entity.getEstadoAprobacion());
+        
+        return acudiente;
     }
-    
-    // ----------------- SHALLOW: Acudiente -----------------
+
+    // ✅ CORREGIDO: Usar los métodos auxiliares existentes
     public static AcudienteEntity toEntityShallow(Acudiente acudiente){
         if(acudiente == null) return null;
+        
         AcudienteEntity acudienteEntity = new AcudienteEntity();
-        acudienteEntity.setIdUsuario(acudiente.getIdUsuario());
-        acudienteEntity.setPrimerNombre(acudiente.getPrimerNombre());
-        acudienteEntity.setSegundoNombre(acudiente.getSegundoNombre());
-        acudienteEntity.setPrimerApellido(acudiente.getPrimerApellido());
-        acudienteEntity.setSegundoApellido(acudiente.getSegundoApellido());
-        acudienteEntity.setEdad(acudiente.getEdad());
-        acudienteEntity.setCorreoElectronico(acudiente.getCorreoElectronico());
-        acudienteEntity.setTelefono(acudiente.getTelefono());
-        // usa token shallow para evitar ciclos si token apunta al usuario/rol
-        acudienteEntity.setTokenAccess(toEntity(acudiente.getTokenAccess()));
+        mapUsuarioToEntity(acudiente, acudienteEntity); // ← ✅ Reutilizar en lugar de repetir
         acudienteEntity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
-        // IMPORTANTE: NO setEstudiantes(...) aquí — cortamos la relación inversa
+        
         return acudienteEntity;
     }
 
+    // ✅ CORREGIDO: Usar los métodos auxiliares existentes  
     public static Acudiente toDomainShallow(AcudienteEntity entity) {
         if (entity == null) return null;
-        Acudiente a = new Acudiente();
-        a.setIdUsuario(entity.getIdUsuario());
-        a.setPrimerNombre(entity.getPrimerNombre());
-        a.setSegundoNombre(entity.getSegundoNombre());
-        a.setPrimerApellido(entity.getPrimerApellido());
-        a.setSegundoApellido(entity.getSegundoApellido());
-        a.setEdad(entity.getEdad());
-        a.setCorreoElectronico(entity.getCorreoElectronico());
-        a.setTelefono(entity.getTelefono());
-        a.setTokenAccess(toDomain(entity.getTokenAccess()));
-        a.setEstadoAprobacion(entity.getEstadoAprobacion());
-
-        // NO setEstudiantes(...) — la colección inversa se omite en el mapping shallow
-        return a;
+        
+        Acudiente acudiente = new Acudiente();
+        mapEntityToUsuario(entity, acudiente); // ← ✅ Reutilizar en lugar de repetir
+        acudiente.setEstadoAprobacion(entity.getEstadoAprobacion());
+        
+        return acudiente;
     }
 
-    // ESTUDIANTE MAPPERS
+    public static Acudiente toDomainComplete(AcudienteEntity entity) {
+        Acudiente acudiente = toDomain(entity);
+        
+        if (acudiente != null && entity.getEstudiantes() != null) {
+            Set<Estudiante> estudiantes = entity.getEstudiantes().stream()
+                .map(DominioAPersistenciaMapper::toDomainShallow)
+                .collect(Collectors.toSet());
+            acudiente.setEstudiantes(estudiantes);
+        }
+        
+        return acudiente;
+    }
 
+    // ==================== PROFESOR ====================
+    public static ProfesorEntity toEntity(Profesor profesor) {
+        if (profesor == null) return null;
+        
+        ProfesorEntity entity = new ProfesorEntity();
+        mapUsuarioToEntity(profesor, entity);
+        return entity;
+    }
+
+    public static Profesor toDomain(ProfesorEntity entity) {
+        if (entity == null) return null;
+        
+        Profesor profesor = new Profesor();
+        mapEntityToUsuario(entity, profesor);
+        return profesor;
+    }
+
+    public static Profesor toDomainComplete(ProfesorEntity entity) {
+        Profesor profesor = toDomain(entity);
+        
+        if (profesor != null && entity.getGrupoAsignado() != null) {
+            profesor.setGrupo(toDomain(entity.getGrupoAsignado()));
+        }
+        
+        return profesor;
+    }
+
+    // ==================== ADMINISTRADOR ====================
+    public static AdministradorEntity toEntity(Administrador administrador) {
+        if (administrador == null) return null;
+        
+        AdministradorEntity entity = new AdministradorEntity();
+        mapUsuarioToEntity(administrador, entity);
+        return entity;
+    }
+
+    public static Administrador toDomain(AdministradorEntity entity) {
+        if (entity == null) return null;
+        
+        Administrador administrador = new Administrador();
+        mapEntityToUsuario(entity, administrador);
+        return administrador;
+    }
+
+    // ==================== DIRECTIVO ====================
+    public static DirectivoEntity toEntity(Directivo directivo) {
+        if (directivo == null) return null;
+        
+        DirectivoEntity entity = new DirectivoEntity();
+        mapUsuarioToEntity(directivo, entity);
+        return entity;
+    }
+
+    public static Directivo toDomain(DirectivoEntity entity) {
+        if (entity == null) return null;
+        
+        Directivo directivo = new Directivo();
+        mapEntityToUsuario(entity, directivo);
+        return directivo;
+    }
+
+    // ==================== ESTUDIANTE ====================
     public static EstudianteEntity toEntity(Estudiante estudiante){
         if(estudiante == null) return null;
-        
-        EstudianteEntity estudianteEntity = new EstudianteEntity();
-        estudianteEntity.setIdEstudiante(estudiante.getIdEstudiante());
-        estudianteEntity.setPrimerNombre(estudiante.getPrimerNombre());
-        estudianteEntity.setSegundoNombre(estudiante.getSegundoNombre());
-        estudianteEntity.setPrimerApellido(estudiante.getPrimerApellido());
-        estudianteEntity.setSegundoApellido(estudiante.getSegundoApellido());
-        estudianteEntity.setNuip(estudiante.getNuip());
-        estudianteEntity.setEdad(estudiante.getEdad());
-        estudianteEntity.setEstado(estudiante.getEstado());
-        
-        // Relaciones - solo si no son nulas para evitar lazy loading innecesario
+            EstudianteEntity estudianteEntity = new EstudianteEntity();
+            estudianteEntity.setIdEstudiante(estudiante.getIdEstudiante());
+            estudianteEntity.setPrimerNombre(estudiante.getPrimerNombre());
+            estudianteEntity.setSegundoNombre(estudiante.getSegundoNombre());
+            estudianteEntity.setPrimerApellido(estudiante.getPrimerApellido());
+            estudianteEntity.setSegundoApellido(estudiante.getSegundoApellido());
+            estudianteEntity.setNuip(estudiante.getNuip());
+            estudianteEntity.setEdad(estudiante.getEdad());
+            estudianteEntity.setEstado(estudiante.getEstado());
         if(estudiante.getAcudiente() != null) {
             estudianteEntity.setAcudiente(toEntityShallow(estudiante.getAcudiente()));
-        }
-        if(estudiante.getGradoAspira() != null) {
-            estudianteEntity.setGradoAspira(toEntity(estudiante.getGradoAspira()));
         }
         if(estudiante.getGrupo() != null) {
             estudianteEntity.setGrupo(toEntity(estudiante.getGrupo()));
@@ -170,23 +254,16 @@ public class DominioAPersistenciaMapper {
         if(estudiante.getPreinscripcion() != null) {
             estudianteEntity.setPreinscripcion(toEntity(estudiante.getPreinscripcion()));
         }
-        
-        // Colecciones
-        if(estudiante.getLogrosCalificados() != null) {
-            estudianteEntity.setLogrosCalificados(
-                estudiante.getLogrosCalificados().stream()
-                    .map(DominioAPersistenciaMapper::toEntity)
-                    .collect(Collectors.toSet())
-            );
+        if (estudiante.getBoletines() != null) {
+            Set<BoletinEntity> boletinesEntities = estudiante.getBoletines().stream()
+            .map(b -> {
+            BoletinEntity bEntity = new BoletinEntity();
+            bEntity.setIdBoletin(b.getIdBoletin());
+            return bEntity;
+            })
+            .collect(Collectors.toSet());
+        estudianteEntity.setBoletines(boletinesEntities);
         }
-        if(estudiante.getBoletines() != null) {
-            estudianteEntity.setBoletines(
-                estudiante.getBoletines().stream()
-                    .map(DominioAPersistenciaMapper::toEntity)
-                    .collect(Collectors.toSet())
-            );
-        }
-        
         return estudianteEntity;
     }
 
@@ -203,7 +280,6 @@ public class DominioAPersistenciaMapper {
         estudiante.setEdad(estudianteEntity.getEdad());
         estudiante.setEstado(estudianteEntity.getEstado());
         
-        // Relaciones - solo si no son nulas
         if(estudianteEntity.getAcudiente() != null) {
             estudiante.setAcudiente(toDomainShallow(estudianteEntity.getAcudiente()));
         }
@@ -223,7 +299,6 @@ public class DominioAPersistenciaMapper {
             estudiante.setPreinscripcion(toDomain(estudianteEntity.getPreinscripcion()));
         }
         
-        // Colecciones
         if(estudianteEntity.getLogrosCalificados() != null) {
             estudiante.setLogrosCalificados(
                 estudianteEntity.getLogrosCalificados().stream()
@@ -242,7 +317,26 @@ public class DominioAPersistenciaMapper {
         return estudiante;
     }
 
-        // ==================== GRADO ====================
+    public static Estudiante toDomainShallow(EstudianteEntity entity) {
+        if (entity == null) return null;
+        
+        Estudiante e = new Estudiante();
+        e.setIdEstudiante(entity.getIdEstudiante());
+        e.setPrimerNombre(entity.getPrimerNombre());
+        e.setSegundoNombre(entity.getSegundoNombre());
+        e.setPrimerApellido(entity.getPrimerApellido());
+        e.setSegundoApellido(entity.getSegundoApellido());
+        e.setNuip(entity.getNuip());
+        e.setEdad(entity.getEdad());
+        e.setEstado(entity.getEstado());
+        
+        if (entity.getAcudiente() != null) {
+            e.setAcudiente(toDomainShallow(entity.getAcudiente()));
+        }
+        return e;
+    }
+
+    // ==================== GRADO ====================
     public static GradoEntity toEntity(Grado grado) {
         if (grado == null) return null;
         
@@ -342,47 +436,6 @@ public class DominioAPersistenciaMapper {
             grado,
             profesor,
             estudiantes
-        );
-    }
-
-    // ==================== PROFESOR ====================
-    public static ProfesorEntity toEntity(Profesor profesor) {
-        if (profesor == null) return null;
-        
-        ProfesorEntity entity = new ProfesorEntity();
-        entity.setIdUsuario(profesor.getIdUsuario());
-        entity.setPrimerNombre(profesor.getPrimerNombre());
-        entity.setSegundoNombre(profesor.getSegundoNombre());
-        entity.setPrimerApellido(profesor.getPrimerApellido());
-        entity.setSegundoApellido(profesor.getSegundoApellido());
-        entity.setEdad(profesor.getEdad());
-        entity.setCorreoElectronico(profesor.getCorreoElectronico());
-        entity.setTelefono(profesor.getTelefono());
-        entity.setTokenAccess(toEntity(profesor.getTokenAccess()));
-        
-        if (profesor.getGrupo() != null) {
-            entity.setGrupoAsignado(toEntity(profesor.getGrupo()));
-        }
-        
-        return entity;
-    }
-
-    public static Profesor toDomain(ProfesorEntity entity) {
-        if (entity == null) return null;
-        
-        Grupo grupo = entity.getGrupoAsignado() != null ? toDomain(entity.getGrupoAsignado()) : null;
-        
-        return new Profesor(
-            entity.getIdUsuario(),
-            entity.getPrimerNombre(),
-            entity.getSegundoNombre(),
-            entity.getPrimerApellido(),
-            entity.getSegundoApellido(),
-            entity.getCorreoElectronico(),
-            entity.getEdad(),
-            entity.getTelefono(),
-            toDomain(entity.getTokenAccess()),
-            grupo
         );
     }
 
@@ -696,74 +749,6 @@ public class DominioAPersistenciaMapper {
             entity.getFechaGeneracion(),
             estudiante,
             logrosEstudiante
-        );
-    }
-
-    // ==================== ADMINISTRADOR ====================
-    public static AdministradorEntity toEntity(Administrador administrador) {
-        if (administrador == null) return null;
-        
-        AdministradorEntity entity = new AdministradorEntity();
-        entity.setIdUsuario(administrador.getIdUsuario());
-        entity.setPrimerNombre(administrador.getPrimerNombre());
-        entity.setSegundoNombre(administrador.getSegundoNombre());
-        entity.setPrimerApellido(administrador.getPrimerApellido());
-        entity.setSegundoApellido(administrador.getSegundoApellido());
-        entity.setEdad(administrador.getEdad());
-        entity.setCorreoElectronico(administrador.getCorreoElectronico());
-        entity.setTelefono(administrador.getTelefono());
-        entity.setTokenAccess(toEntity(administrador.getTokenAccess()));
-        
-        return entity;
-    }
-
-    public static Administrador toDomain(AdministradorEntity entity) {
-        if (entity == null) return null;
-        
-        return new Administrador(
-            entity.getIdUsuario(),
-            entity.getPrimerNombre(),
-            entity.getSegundoNombre(),
-            entity.getPrimerApellido(),
-            entity.getSegundoApellido(),
-            entity.getCorreoElectronico(),
-            entity.getEdad(),
-            entity.getTelefono(),
-            toDomain(entity.getTokenAccess())
-        );
-    }
-
-    // ==================== DIRECTIVO ====================
-    public static DirectivoEntity toEntity(Directivo directivo) {
-        if (directivo == null) return null;
-        
-        DirectivoEntity entity = new DirectivoEntity();
-        entity.setIdUsuario(directivo.getIdUsuario());
-        entity.setPrimerNombre(directivo.getPrimerNombre());
-        entity.setSegundoNombre(directivo.getSegundoNombre());
-        entity.setPrimerApellido(directivo.getPrimerApellido());
-        entity.setSegundoApellido(directivo.getSegundoApellido());
-        entity.setEdad(directivo.getEdad());
-        entity.setCorreoElectronico(directivo.getCorreoElectronico());
-        entity.setTelefono(directivo.getTelefono());
-        entity.setTokenAccess(toEntity(directivo.getTokenAccess()));
-        
-        return entity;
-    }
-
-    public static Directivo toDomain(DirectivoEntity entity) {
-        if (entity == null) return null;
-        
-        return new Directivo(
-            entity.getIdUsuario(),
-            entity.getPrimerNombre(),
-            entity.getSegundoNombre(),
-            entity.getPrimerApellido(),
-            entity.getSegundoApellido(),
-            entity.getCorreoElectronico(),
-            entity.getEdad(),
-            entity.getTelefono(),
-            toDomain(entity.getTokenAccess())
         );
     }
 }

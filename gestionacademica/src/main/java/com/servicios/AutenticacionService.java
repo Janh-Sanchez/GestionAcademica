@@ -1,82 +1,106 @@
 package com.servicios;
 
 import java.util.Optional;
+import javax.swing.JOptionPane;
 
-import com.dominio.TokenUsuario;
+import com.dominio.*;
+import com.persistencia.entidades.AcudienteEntity;
+import com.persistencia.entidades.AdministradorEntity;
+import com.persistencia.entidades.DirectivoEntity;
+import com.persistencia.entidades.ProfesorEntity;
 import com.persistencia.entidades.TokenUsuarioEntity;
+import com.persistencia.entidades.UsuarioEntity;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
 import com.persistencia.repositorios.TokenUsuarioRepositorio;
+import com.persistencia.repositorios.UsuarioRepositorio;
 
 public class AutenticacionService {
     private final TokenUsuarioRepositorio tokenRepositorio;
+    private final UsuarioRepositorio usuarioRepositorio;
     private int intentosFallidos = 0;
     private static final int MAX_INTENTOS = 3;
 
-    public AutenticacionService(TokenUsuarioRepositorio tokenRepositorio) {
+    public AutenticacionService(
+            TokenUsuarioRepositorio tokenRepositorio,
+            UsuarioRepositorio usuarioRepositorio) {
+        
         this.tokenRepositorio = tokenRepositorio;
+        this.usuarioRepositorio = usuarioRepositorio;
     }
 
-    public ResultadoAutenticacion iniciarSesion(String nombreUsuario, String contrasena) {
-        // Validar campos vacíos
-        if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
-            contrasena == null || contrasena.trim().isEmpty()) {
-            return new ResultadoAutenticacion(false, null, 
-                "Por favor, llene todos los campos");
-        }
-
-        // Verificar intentos
+    public Optional<Usuario> iniciarSesion(String nombreUsuario, String contrasena) {
         if (intentosFallidos >= MAX_INTENTOS) {
-            return new ResultadoAutenticacion(false, null, 
-                "Límite de intentos alcanzado. La opción de inicio de sesión está temporalmente inhabilitada");
+            throw new IllegalStateException("Límite de intentos alcanzado. La opción de inicio de sesión está temporalmente inhabilitada");
         }
 
         try {
-            // Buscar token en BD
+            // 1. Buscar token en BD
             Optional<TokenUsuarioEntity> tokenEntityOpt = 
                 tokenRepositorio.buscarPorNombreUsuario(nombreUsuario);
             
             if (tokenEntityOpt.isEmpty()) {
-                return new ResultadoAutenticacion(false, null, 
-                    "Usuario o contraseña incorrectos, inténtelo nuevamente");
+                intentosFallidos++;
+                return Optional.empty();
             }
 
-            // Convertir a dominio
+            // 2. Convertir a dominio y verificar credenciales
             TokenUsuario token = DominioAPersistenciaMapper.toDomain(tokenEntityOpt.get());
 
-            // EL OBJETO SE VALIDA A SÍ MISMO
             if (!token.verificarCredenciales(contrasena)) {
                 intentosFallidos++;
-                String mensaje = ("Usuario o contraseña incorrectos, inténtelo nuevamente");
-                return new ResultadoAutenticacion(false, null, mensaje);
+                return Optional.empty();
+            }
+
+            // 3. Buscar usuario por token - JPA automáticamente carga la entidad específica
+            Optional<UsuarioEntity> usuarioEntityOpt = usuarioRepositorio.buscarPorToken(token.getIdToken());
+            
+            if (usuarioEntityOpt.isEmpty()) {
+                intentosFallidos++;
+                return Optional.empty();
+            }
+
+            // 4. Convertir a dominio (JPA ya determina el tipo específico)
+            Usuario usuario = convertirAUsuarioEspecifico(usuarioEntityOpt.get());
+
+            if (usuario == null) {
+                intentosFallidos++;
+                return Optional.empty();
             }
 
             intentosFallidos = 0;
-            return new ResultadoAutenticacion(true, token, 
-                "Inicio de sesión exitoso con rol: " + token.getRol().getNombre());
+            return Optional.of(usuario);
 
         } catch (Exception e) {
-            return new ResultadoAutenticacion(false, null, 
-                "Hubo un error al acceder a la base de datos, inténtelo nuevamente");
+            throw new RuntimeException("Error al acceder a la base de datos: " + e.getMessage(), e);
         }
     }
 
-    public int getIntentosFallidos(){
+    private Usuario convertirAUsuarioEspecifico(UsuarioEntity usuarioEntity) {
+        if (usuarioEntity == null) return null;
+        
+        switch (usuarioEntity.getClass().getSimpleName()) {
+            case "AdministradorEntity":
+                return DominioAPersistenciaMapper.toDomain((AdministradorEntity) usuarioEntity);
+            case "ProfesorEntity":
+                return DominioAPersistenciaMapper.toDomain((ProfesorEntity) usuarioEntity);
+            case "DirectivoEntity":
+                return DominioAPersistenciaMapper.toDomain((DirectivoEntity) usuarioEntity);
+            case "AcudienteEntity":
+                return DominioAPersistenciaMapper.toDomain((AcudienteEntity) usuarioEntity);
+            default:
+                JOptionPane.showMessageDialog(null,
+                    "Tipo de usuario no reconocido: " + usuarioEntity.getClass().getSimpleName(),
+                    "Error de autenticación",
+                    JOptionPane.ERROR_MESSAGE);
+                return null;
+        }
+    }
+
+    public int getIntentosFallidos() {
         return intentosFallidos;
     }
-
-    public static class ResultadoAutenticacion {
-        private final boolean exitoso;
-        private final TokenUsuario token;
-        private final String mensaje;
-
-        public ResultadoAutenticacion(boolean exitoso, TokenUsuario token, String mensaje) {
-            this.exitoso = exitoso;
-            this.token = token;
-            this.mensaje = mensaje;
-        }
-
-        public boolean isExitoso() { return exitoso; }
-        public TokenUsuario getToken() { return token; }
-        public String getMensaje() { return mensaje; }
+    
+    public int getIntentosRestantes() {
+        return MAX_INTENTOS - intentosFallidos;
     }
 }
