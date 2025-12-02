@@ -14,15 +14,13 @@ public class RepositorioGenerico<T> {
         this.entityClass = entityClass;
     }
 
-    public T guardar(T entity) {
-        entityManager.getTransaction().begin();
+    public T guardar(T entidad) {
         try {
-            entityManager.persist(entity);
-            entityManager.getTransaction().commit();
-            return entity;
+            entityManager.persist(entidad);
+            entityManager.flush(); // Para obtener el ID generado
+            return entidad;
         } catch (Exception e) {
-            entityManager.getTransaction().rollback();
-            throw e;
+            throw new RuntimeException("Error al guardar entidad", e);
         }
     }
 

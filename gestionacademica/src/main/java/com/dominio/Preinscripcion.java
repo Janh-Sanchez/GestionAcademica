@@ -1,21 +1,25 @@
 package com.dominio;
 
 import java.time.LocalDate;
-import java.util.SortedSet;
+import java.util.Set;
 
 public class Preinscripcion{
     private Integer idPreinscripcion;
     private LocalDate fechaRegistro;
     private Estado estado = Estado.Pendiente;
     private Acudiente acudiente;
-	private SortedSet<Estudiante> estudiantes;
+	private Set<Estudiante> estudiantes;
 
-    public Preinscripcion(Integer idPreinscripcion, LocalDate fechaRegistro, Estado estado, Acudiente acudiente, SortedSet<Estudiante> estudiantes) {
+    public Preinscripcion(Integer idPreinscripcion, LocalDate fechaRegistro, Estado estado, Acudiente acudiente, Set<Estudiante> estudiantes) {
         this.idPreinscripcion = idPreinscripcion;
         this.fechaRegistro = fechaRegistro;
         this.estado = estado;
         this.acudiente = acudiente;
         this.estudiantes = estudiantes;
+    }
+
+    public Preinscripcion() {
+        //TODO Auto-generated constructor stub
     }
 
     public Integer getIdPreinscripcion() {
@@ -50,11 +54,11 @@ public class Preinscripcion{
         this.acudiente = acudiente;
     }
 
-    public SortedSet<Estudiante> getEstudiantes() {
+    public Set<Estudiante> getEstudiantes() {
         return estudiantes;
     }
 
-    public void setEstudiantes(SortedSet<Estudiante> estudiantes) {
+    public void setEstudiantes(Set<Estudiante> estudiantes) {
         this.estudiantes = estudiantes;
     }
 

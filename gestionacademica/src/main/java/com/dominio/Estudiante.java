@@ -19,7 +19,6 @@ public class Estudiante {
     private Observador observador;
     private Set<LogroEstudiante> logrosCalificados;
     private Set<Boletin> boletines;
-    private Preinscripcion preinscripcion;
 
     public Estudiante() {
     }
@@ -27,7 +26,7 @@ public class Estudiante {
     public Estudiante(Integer idEstudiante, String primerNombre, String segundoNombre, String primerApellido,
         String segundoApellido, String nuip, int edad, Estado estado, Acudiente acudiente,
         Grado gradoAspira, Grupo grupo, HojaVida hojaDeVida, Observador observador,
-        Set<LogroEstudiante> logrosCalificados, Set<Boletin> boletines, Preinscripcion preinscripcion) {
+        Set<LogroEstudiante> logrosCalificados, Set<Boletin> boletines) {
         this.idEstudiante = idEstudiante;
         this.primerNombre = primerNombre;
         this.segundoNombre = segundoNombre;
@@ -43,7 +42,6 @@ public class Estudiante {
         this.observador = observador;
         this.logrosCalificados = logrosCalificados;
         this.boletines = boletines;
-        this.preinscripcion = preinscripcion;
     }
 
     public Integer getIdEstudiante() { return idEstudiante; }
@@ -76,8 +74,6 @@ public class Estudiante {
     public void setLogrosCalificados(Set<LogroEstudiante> logrosCalificados) { this.logrosCalificados = logrosCalificados; }
     public Set<Boletin> getBoletines() { return boletines; }
     public void setBoletines(Set<Boletin> boletines) { this.boletines = boletines; }
-    public Preinscripcion getPreinscripcion() { return preinscripcion; }
-    public void setPreinscripcion(Preinscripcion preinscripcion) { this.preinscripcion = preinscripcion; }
 
     public void agregarBoletin(Boletin boletin){
         boletines.add(boletin);

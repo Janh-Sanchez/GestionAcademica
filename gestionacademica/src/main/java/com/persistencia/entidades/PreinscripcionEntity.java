@@ -3,7 +3,7 @@ package com.persistencia.entidades;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
-import java.util.SortedSet;
+import java.util.Set; // Cambiar de SortedSet a Set
 
 import com.dominio.Estado;
 
@@ -27,10 +27,10 @@ public class PreinscripcionEntity {
     @JoinColumn(name = "acudiente", referencedColumnName = "id_usuario")
     private AcudienteEntity acudiente;
 
-	@OneToMany(mappedBy = "preinscripcion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	private SortedSet<EstudianteEntity> estudiantes;
+    @OneToMany(mappedBy = "preinscripcion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<EstudianteEntity> estudiantes;
 
-        public Integer getIdPreinscripcion() {
+    public Integer getIdPreinscripcion() {
         return idPreinscripcion;
     }
 
@@ -62,11 +62,11 @@ public class PreinscripcionEntity {
         this.acudiente = acudiente;
     }
 
-    public SortedSet<EstudianteEntity> getEstudiantes() {
+    public Set<EstudianteEntity> getEstudiantes() {
         return estudiantes;
     }
 
-    public void setEstudiantes(SortedSet<EstudianteEntity> estudiantes) {
+    public void setEstudiantes(Set<EstudianteEntity> estudiantes) {
         this.estudiantes = estudiantes;
     }
 }

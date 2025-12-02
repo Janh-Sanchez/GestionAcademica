@@ -3,6 +3,7 @@ package com.persistencia.mappers;
 import com.dominio.*;
 import com.persistencia.entidades.*;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,7 +48,6 @@ public class DominioAPersistenciaMapper {
         return rol;
     }
 
-    // ✅ CORRECCIÓN CRÍTICA: No convertir el usuario para evitar recursión infinita
     public static TokenUsuarioEntity toEntity(TokenUsuario token) {
         if (token == null) return null;
         TokenUsuarioEntity entity = new TokenUsuarioEntity();
@@ -58,7 +58,6 @@ public class DominioAPersistenciaMapper {
         return entity;
     }
 
-    // ✅ CORRECCIÓN CRÍTICA: No convertir el usuario para evitar recursión infinita
     public static TokenUsuario toDomain(TokenUsuarioEntity entity) {
         if (entity == null) return null;
         TokenUsuario token = new TokenUsuario(
@@ -95,7 +94,6 @@ public class DominioAPersistenciaMapper {
         usuario.setEdad(entity.getEdad());
         usuario.setCorreoElectronico(entity.getCorreoElectronico());
         usuario.setTelefono(entity.getTelefono());
-        // ✅ Esto es seguro porque toDomain(TokenUsuarioEntity) ya no convierte el usuario
         usuario.setTokenAccess(toDomain(entity.getTokenAccess()));
     }
     
@@ -104,18 +102,26 @@ public class DominioAPersistenciaMapper {
         if (acudiente == null) return null;
         
         AcudienteEntity entity = new AcudienteEntity();
-        mapUsuarioToEntity(acudiente, entity); // ← ✅ Ya mapea todos los campos básicos
+        mapUsuarioToEntity(acudiente, entity);
         entity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
         
-        if (acudiente.getEstudiantes() != null) {
-            Set<EstudianteEntity> estudiantesEntities = acudiente.getEstudiantes().stream()
-                .map(est -> {
-                    EstudianteEntity estEntity = new EstudianteEntity();
-                    estEntity.setIdEstudiante(est.getIdEstudiante());
-                    return estEntity;
-                })
-                .collect(Collectors.toSet());
-            entity.setEstudiantes(estudiantesEntities);
+        // ⚠️ SOLO para nuevas entidades, no establecer estudiantes
+        // Los estudiantes se establecerán después de persistir la preinscripción
+        if (acudiente.getIdUsuario() == null) {
+            // Nueva entidad, no establecer estudiantes
+            entity.setEstudiantes(null);
+        } else {
+            // Entidad existente, establecer solo referencias
+            if (acudiente.getEstudiantes() != null) {
+                Set<EstudianteEntity> estudiantesEntities = acudiente.getEstudiantes().stream()
+                    .map(est -> {
+                        EstudianteEntity estEntity = new EstudianteEntity();
+                        estEntity.setIdEstudiante(est.getIdEstudiante());
+                        return estEntity;
+                    })
+                    .collect(Collectors.toSet());
+                entity.setEstudiantes(estudiantesEntities);
+            }
         }
         
         return entity;
@@ -125,29 +131,30 @@ public class DominioAPersistenciaMapper {
         if (entity == null) return null;
         
         Acudiente acudiente = new Acudiente();
-        mapEntityToUsuario(entity, acudiente); // ← ✅ Ya mapea todos los campos básicos
+        mapEntityToUsuario(entity, acudiente);
         acudiente.setEstadoAprobacion(entity.getEstadoAprobacion());
         
         return acudiente;
     }
 
-    // ✅ CORREGIDO: Usar los métodos auxiliares existentes
     public static AcudienteEntity toEntityShallow(Acudiente acudiente){
         if(acudiente == null) return null;
         
         AcudienteEntity acudienteEntity = new AcudienteEntity();
-        mapUsuarioToEntity(acudiente, acudienteEntity); // ← ✅ Reutilizar en lugar de repetir
+        mapUsuarioToEntity(acudiente, acudienteEntity);
         acudienteEntity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
+        
+        // ⚠️ Para shallow, NO establecer estudiantes
+        acudienteEntity.setEstudiantes(null);
         
         return acudienteEntity;
     }
 
-    // ✅ CORREGIDO: Usar los métodos auxiliares existentes  
     public static Acudiente toDomainShallow(AcudienteEntity entity) {
         if (entity == null) return null;
         
         Acudiente acudiente = new Acudiente();
-        mapEntityToUsuario(entity, acudiente); // ← ✅ Reutilizar en lugar de repetir
+        mapEntityToUsuario(entity, acudiente);
         acudiente.setEstadoAprobacion(entity.getEstadoAprobacion());
         
         return acudiente;
@@ -230,18 +237,46 @@ public class DominioAPersistenciaMapper {
     // ==================== ESTUDIANTE ====================
     public static EstudianteEntity toEntity(Estudiante estudiante){
         if(estudiante == null) return null;
-            EstudianteEntity estudianteEntity = new EstudianteEntity();
+        
+        EstudianteEntity estudianteEntity = new EstudianteEntity();
+        
+        // Solo asignar ID si la entidad ya existe
+        if (estudiante.getIdEstudiante() != null && estudiante.getIdEstudiante() > 0) {
             estudianteEntity.setIdEstudiante(estudiante.getIdEstudiante());
-            estudianteEntity.setPrimerNombre(estudiante.getPrimerNombre());
-            estudianteEntity.setSegundoNombre(estudiante.getSegundoNombre());
-            estudianteEntity.setPrimerApellido(estudiante.getPrimerApellido());
-            estudianteEntity.setSegundoApellido(estudiante.getSegundoApellido());
-            estudianteEntity.setNuip(estudiante.getNuip());
-            estudianteEntity.setEdad(estudiante.getEdad());
-            estudianteEntity.setEstado(estudiante.getEstado());
-        if(estudiante.getAcudiente() != null) {
-            estudianteEntity.setAcudiente(toEntityShallow(estudiante.getAcudiente()));
         }
+        
+        estudianteEntity.setPrimerNombre(estudiante.getPrimerNombre());
+        estudianteEntity.setSegundoNombre(estudiante.getSegundoNombre());
+        estudianteEntity.setPrimerApellido(estudiante.getPrimerApellido());
+        estudianteEntity.setSegundoApellido(estudiante.getSegundoApellido());
+        estudianteEntity.setNuip(estudiante.getNuip());
+        estudianteEntity.setEdad(estudiante.getEdad());
+        estudianteEntity.setEstado(estudiante.getEstado());
+        
+        // siempre establecer acudiente (para nuevos y existentes)
+        if(estudiante.getAcudiente() != null && estudiante.getAcudiente().getIdUsuario() != null) {
+            // Crear referencia mínima al acudiente (solo ID)
+            AcudienteEntity acudienteRef = new AcudienteEntity();
+            acudienteRef.setIdUsuario(estudiante.getAcudiente().getIdUsuario());
+            estudianteEntity.setAcudiente(acudienteRef);
+        } else {
+            // Si el estudiante no tiene acudiente con ID, lanzar excepción
+            throw new IllegalArgumentException(
+                "Estudiante debe tener un acudiente con ID válido. " +
+                "ID acudiente: " + (estudiante.getAcudiente() != null ? 
+                    estudiante.getAcudiente().getIdUsuario() : "null"));
+        }
+        
+        // La preinscripción se establecerá DESPUÉS en PreinscripcionService
+        
+        // Grado se puede establecer siempre
+        if(estudiante.getGradoAspira() != null) {
+            GradoEntity gradoEntity = new GradoEntity();
+            gradoEntity.setIdGrado(estudiante.getGradoAspira().getIdGrado());
+            estudianteEntity.setGradoAspira(gradoEntity);
+        }
+        
+        // Estas relaciones generalmente no se usan en preinscripción
         if(estudiante.getGrupo() != null) {
             estudianteEntity.setGrupo(toEntity(estudiante.getGrupo()));
         }
@@ -251,19 +286,19 @@ public class DominioAPersistenciaMapper {
         if(estudiante.getObservador() != null) {
             estudianteEntity.setObservador(toEntity(estudiante.getObservador()));
         }
-        if(estudiante.getPreinscripcion() != null) {
-            estudianteEntity.setPreinscripcion(toEntity(estudiante.getPreinscripcion()));
-        }
-        if (estudiante.getBoletines() != null) {
+        
+        // Estas colecciones generalmente están vacías en preinscripción
+        if (estudiante.getBoletines() != null && !estudiante.getBoletines().isEmpty()) {
             Set<BoletinEntity> boletinesEntities = estudiante.getBoletines().stream()
-            .map(b -> {
-            BoletinEntity bEntity = new BoletinEntity();
-            bEntity.setIdBoletin(b.getIdBoletin());
-            return bEntity;
-            })
-            .collect(Collectors.toSet());
-        estudianteEntity.setBoletines(boletinesEntities);
+                .map(b -> {
+                    BoletinEntity bEntity = new BoletinEntity();
+                    bEntity.setIdBoletin(b.getIdBoletin());
+                    return bEntity;
+                })
+                .collect(Collectors.toSet());
+            estudianteEntity.setBoletines(boletinesEntities);
         }
+        
         return estudianteEntity;
     }
 
@@ -294,9 +329,6 @@ public class DominioAPersistenciaMapper {
         }
         if(estudianteEntity.getObservador() != null) {
             estudiante.setObservador(toDomain(estudianteEntity.getObservador()));
-        }
-        if(estudianteEntity.getPreinscripcion() != null) {
-            estudiante.setPreinscripcion(toDomain(estudianteEntity.getPreinscripcion()));
         }
         
         if(estudianteEntity.getLogrosCalificados() != null) {
@@ -559,13 +591,36 @@ public class DominioAPersistenciaMapper {
             entity.setAcudiente(toEntityShallow(preinscripcion.getAcudiente()));
         }
         
-        if (preinscripcion.getEstudiantes() != null) {
-            entity.setEstudiantes(
-                preinscripcion.getEstudiantes().stream()
+        // ⚠️ CRÍTICO: NO establecer estudiantes aquí para nuevas preinscripciones
+        // Esto causa el error "Detached entity passed to persist"
+        // Los estudiantes se establecerán en el servicio después de persistirlos
+        if (preinscripcion.getIdPreinscripcion() != null && preinscripcion.getIdPreinscripcion() > 0) {
+            // Solo para preinscripciones existentes
+            if (preinscripcion.getEstudiantes() != null) {
+                Set<EstudianteEntity> estudiantesEntity = preinscripcion.getEstudiantes().stream()
                     .map(DominioAPersistenciaMapper::toEntity)
-                    .collect(Collectors.toCollection(java.util.TreeSet::new))
-            );
+                    .collect(Collectors.toCollection(HashSet::new));
+                entity.setEstudiantes(estudiantesEntity);
+            }
         }
+        
+        return entity;
+    }
+
+    // Versión alternativa para nuevas preinscripciones
+    public static PreinscripcionEntity toEntityForNew(Preinscripcion preinscripcion) {
+        if (preinscripcion == null) return null;
+        
+        PreinscripcionEntity entity = new PreinscripcionEntity();
+        entity.setFechaRegistro(preinscripcion.getFechaRegistro());
+        entity.setEstado(preinscripcion.getEstado());
+        
+        if (preinscripcion.getAcudiente() != null) {
+            entity.setAcudiente(toEntityShallow(preinscripcion.getAcudiente()));
+        }
+        
+        // ⚠️ NO establecer estudiantes - se hará después en el servicio
+        entity.setEstudiantes(null);
         
         return entity;
     }
@@ -575,13 +630,13 @@ public class DominioAPersistenciaMapper {
         
         Acudiente acudiente = entity.getAcudiente() != null ? toDomainShallow(entity.getAcudiente()) : null;
         
-        java.util.SortedSet<Estudiante> estudiantes = null;
+        HashSet<Estudiante> estudiantes = null;
         if (entity.getEstudiantes() != null) {
             estudiantes = entity.getEstudiantes().stream()
                 .map(DominioAPersistenciaMapper::toDomain)
-                .collect(Collectors.toCollection(java.util.TreeSet::new));
+                .collect(Collectors.toCollection(HashSet::new));
         }
-        
+
         return new Preinscripcion(
             entity.getIdPreinscripcion(),
             entity.getFechaRegistro(),
