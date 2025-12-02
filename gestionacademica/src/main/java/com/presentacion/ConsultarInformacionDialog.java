@@ -18,7 +18,6 @@ public class ConsultarInformacionDialog extends JDialog {
     private final Color CB = new Color(255, 212, 160);
     private final Color CBH = new Color(255, 230, 180);
     private final Color CT = new Color(58, 46, 46);
-    private final Color CF = new Color(255, 243, 227);
     
     private Usuario usuarioAutenticado;
     private GestionUsuariosService gestionService;
@@ -190,11 +189,6 @@ public class ConsultarInformacionDialog extends JDialog {
         
         panelInformacion.add(crearCampoInfo("Teléfono:", usuario.getTelefono()));
         panelInformacion.add(Box.createVerticalStrut(15));
-        
-        if (usuario.getTokenAccess() != null && usuario.getTokenAccess().getRol() != null) {
-            panelInformacion.add(crearCampoInfo("Rol:", usuario.getTokenAccess().getRol().getNombre()));
-            panelInformacion.add(Box.createVerticalStrut(15));
-        }
         
         // Agregar información específica según el tipo de usuario
         if (usuario instanceof com.dominio.Profesor profesor) {

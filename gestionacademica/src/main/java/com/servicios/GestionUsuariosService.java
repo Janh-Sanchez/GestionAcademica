@@ -54,34 +54,27 @@ private final EntityManagerFactory emf;
             RolEntity rolEntity = rolEntityOpt.get();
             
             // Validar duplicados de email y teléfono
-            if (existeUsuarioPorEmail(em, usuario.getCorreoElectronico())) {
+            if (repositorioUsuario.existePorCorreo(usuario.getCorreoElectronico())) {
                 return ResultadoOperacion.error("Ya existe un usuario con ese correo electrónico");
             }
             
-            if (existeUsuarioPorTelefono(em, usuario.getTelefono())) {
+            if (repositorioUsuario.existePorTelefono(usuario.getTelefono())) {
                 return ResultadoOperacion.error("Ya existe un usuario con ese número de teléfono");
             }
             
             // Generar token de usuario
             TokenUsuario tokenUsuario = generarTokenUsuario(usuario);
             
-            // **CORRECCIÓN: Asignar rol al token en dominio**
             Rol rol = DominioAPersistenciaMapper.toDomain(rolEntity);
             tokenUsuario.setRol(rol);
             usuario.setTokenAccess(tokenUsuario);
             
-            // Validar nombre de usuario único (ya lo hace generarTokenUsuario, pero por seguridad)
-            if (existeNombreUsuario(em, tokenUsuario.getNombreUsuario())) {
-                return ResultadoOperacion.error("El nombre de usuario ya está en uso");
-            }
-            
-            // **IMPORTANTE: Crear tokenEntity con el rol asociado**
+            // Crear tokenEntity con el rol asociado
             TokenUsuarioEntity tokenEntity = new TokenUsuarioEntity();
             tokenEntity.setNombreUsuario(tokenUsuario.getNombreUsuario());
             tokenEntity.setContrasena(tokenUsuario.getContrasena());
             tokenEntity.setRol(rolEntity); // RolEntity ya managed por JPA
             
-            // **CORRECCIÓN CRÍTICA: Persistir el token UNA sola vez**
             em.persist(tokenEntity);
             
             // Crear entidad según el tipo de usuario
@@ -93,7 +86,7 @@ private final EntityManagerFactory emf;
                     Profesor profesor = (Profesor) usuario;
                     ProfesorEntity profesorEntity = DominioAPersistenciaMapper.toEntity(profesor);
                     
-                    // **CORRECCIÓN: Asignar el tokenEntity ya persistido**
+                    // Asignar el tokenEntity ya persistido**
                     profesorEntity.setTokenAccess(tokenEntity);
                     
                     em.persist(profesorEntity);
@@ -104,14 +97,12 @@ private final EntityManagerFactory emf;
                     Directivo directivo = (Directivo) usuario;
                     DirectivoEntity directivoEntity = DominioAPersistenciaMapper.toEntity(directivo);
                     
-                    // **CORRECCIÓN: Asignar el tokenEntity ya persistido**
+                    // Asignar el tokenEntity ya persistido**
                     directivoEntity.setTokenAccess(tokenEntity);
                     
                     em.persist(directivoEntity);
                     usuarioEntity = directivoEntity;
                     break;
-                    
-                // ... otros casos similares
             }
             
             em.getTransaction().commit();
@@ -167,18 +158,14 @@ private final EntityManagerFactory emf;
                 return ResultadoOperacion.error("ID de usuario no válido");
             }
             
-            Optional<UsuarioEntity> usuarioEntity = repositorioUsuario.buscarPorIdOpt(usuarioId);
+            Optional<UsuarioEntity> usuarioEntityOpt = repositorioUsuario.buscarPorIdOpt(usuarioId);
             
-            if (usuarioEntity == null) {
+            if (usuarioEntityOpt.isEmpty()) {
                 return ResultadoOperacion.error("Usuario no encontrado");
             }
             
-            // Determinar el tipo de usuario y mapear a dominio
-            Usuario usuario = mapearEntidadADominio(usuarioEntity.get());
-            
-            if (usuario == null) {
-                return ResultadoOperacion.error("Error al mapear la entidad a dominio");
-            }
+            // Se delega todo al mapperEspecializado
+            Usuario usuario = mapearEntidadADominio(usuarioEntityOpt.get());
             
             return ResultadoOperacion.exito("Consulta exitosa", usuario);
             
@@ -190,39 +177,25 @@ private final EntityManagerFactory emf;
         }
     }
     
-    /**
-     * Método auxiliar para mapear entidades a objetos de dominio
-     */
+    // Metodo que DELEGA completamente al mapper
     private Usuario mapearEntidadADominio(UsuarioEntity usuarioEntity) {
         if (usuarioEntity == null) {
             return null;
         }
         
         try {
-            if (usuarioEntity instanceof ProfesorEntity profesorEntity) {
-                return DominioAPersistenciaMapper.toDomainComplete(profesorEntity);
-            } else if (usuarioEntity instanceof DirectivoEntity directivoEntity) {
-                return DominioAPersistenciaMapper.toDomain(directivoEntity);
-            } else if (usuarioEntity instanceof AdministradorEntity adminEntity) {
-                return DominioAPersistenciaMapper.toDomain(adminEntity);
-            } else if (usuarioEntity instanceof AcudienteEntity acudienteEntity) {
-                return DominioAPersistenciaMapper.toDomainComplete(acudienteEntity);
-            } else {
-                // Es un UsuarioEntity base (no debería ocurrir)
-                Usuario usuario = new Usuario();
-                usuario.setIdUsuario(usuarioEntity.getIdUsuario());
-                usuario.setPrimerNombre(usuarioEntity.getPrimerNombre());
-                usuario.setSegundoNombre(usuarioEntity.getSegundoNombre());
-                usuario.setPrimerApellido(usuarioEntity.getPrimerApellido());
-                usuario.setSegundoApellido(usuarioEntity.getSegundoApellido());
-                usuario.setEdad(usuarioEntity.getEdad());
-                usuario.setCorreoElectronico(usuarioEntity.getCorreoElectronico());
-                usuario.setTelefono(usuarioEntity.getTelefono());
-                if (usuarioEntity.getTokenAccess() != null) {
-                    usuario.setTokenAccess(DominioAPersistenciaMapper.toDomain(usuarioEntity.getTokenAccess()));
-                }
-                return usuario;
+            // Usar el método apropiado del mapper existente
+            if (usuarioEntity instanceof ProfesorEntity) {
+                return DominioAPersistenciaMapper.toDomainComplete((ProfesorEntity) usuarioEntity);
+            } else if (usuarioEntity instanceof DirectivoEntity) {
+                return DominioAPersistenciaMapper.toDomain((DirectivoEntity) usuarioEntity);
+            } else if (usuarioEntity instanceof AdministradorEntity) {
+                return DominioAPersistenciaMapper.toDomain((AdministradorEntity) usuarioEntity);
+            } else if (usuarioEntity instanceof AcudienteEntity) {
+                return DominioAPersistenciaMapper.toDomainComplete((AcudienteEntity) usuarioEntity);
             }
+            
+            return null; // No debería llegar aquí
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -230,29 +203,65 @@ private final EntityManagerFactory emf;
     }
     
     // ==================== Métodos privados ====================
-    
     private TokenUsuario generarTokenUsuario(Usuario usuario) {
-        // Generar nombre de usuario: primera letra del primer nombre + primer apellido
-        String nombreUsuario = "";
-        if (usuario.getPrimerNombre() != null && usuario.getPrimerApellido() != null) {
-            nombreUsuario = (usuario.getPrimerNombre().substring(0, 1) + 
-                          usuario.getPrimerApellido()).toLowerCase().replaceAll("\\s+", "");
-        } else {
-            // Si no hay nombre, generar uno aleatorio
-            nombreUsuario = "user" + new Random().nextInt(10000);
+        // Validar campos obligatorios
+        if (usuario.getPrimerNombre() == null || usuario.getPrimerApellido() == null) {
+            throw new IllegalArgumentException("Nombre y apellido son obligatorios");
         }
         
-        // Contraseña temporal: 8 caracteres aleatorios
-        String contrasena = generarContrasenaAleatoria();
+        StringBuilder nombreUsuarioBuilder = new StringBuilder();
         
-        // Crear token (el ID se asignará al persistir)
+        // Primera letra del primer nombre
+        if (!usuario.getPrimerNombre().isEmpty()) {
+            nombreUsuarioBuilder.append(usuario.getPrimerNombre().charAt(0));
+        }
+        
+        // Primera letra del segundo nombre (si existe)
+        if (usuario.getSegundoNombre() != null && !usuario.getSegundoNombre().isEmpty()) {
+            nombreUsuarioBuilder.append(usuario.getSegundoNombre().charAt(0));
+        }
+        
+        // Apellido completo
+        nombreUsuarioBuilder.append(usuario.getPrimerApellido().toLowerCase().replaceAll("\\s+", ""));
+        
+        // Primera letra del segundo apellido (si existe)
+        if (usuario.getSegundoApellido() != null && !usuario.getSegundoApellido().isEmpty()) {
+            nombreUsuarioBuilder.append(usuario.getSegundoApellido().toLowerCase().charAt(0));
+        }
+        
+        // Eliminar tildes y caracteres especiales
+        String nombreUsuario = normalizarTexto(nombreUsuarioBuilder.toString());
+        
         TokenUsuario token = new TokenUsuario();
         token.setNombreUsuario(nombreUsuario);
-        token.setContrasena(contrasena);
-        // El rol se asignará desde el parámetro en crearUsuario
+        token.setContrasena(generarContrasenaAleatoria());
         
         return token;
     }
+
+    private String normalizarTexto(String texto) {
+    if (texto == null || texto.isEmpty()) {
+        return texto;
+    }
+    
+    // Convertir a minúsculas
+    String normalizado = texto.toLowerCase();
+    
+    // Reemplazar vocales con tildes
+    normalizado = normalizado
+        .replace('á', 'a')
+        .replace('é', 'e')
+        .replace('í', 'i')
+        .replace('ó', 'o')
+        .replace('ú', 'u')
+        .replace('ü', 'u')
+        .replace('ñ', 'n');
+    
+    // Eliminar caracteres especiales, mantener solo letras y números
+    normalizado = normalizado.replaceAll("[^a-z0-9]", "");
+    
+    return normalizado;
+}
     
     private String generarContrasenaAleatoria() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$";
@@ -264,57 +273,6 @@ private final EntityManagerFactory emf;
         }
         
         return sb.toString();
-    }
-    
-    private boolean existeUsuarioPorEmail(EntityManager em, String email) {
-        if (email == null || email.trim().isEmpty()) {
-            return false;
-        }
-        
-        try {
-            String jpql = "SELECT COUNT(u) FROM usuario u WHERE u.correoElectronico = :email";
-            Long count = em.createQuery(jpql, Long.class)
-                          .setParameter("email", email)
-                          .getSingleResult();
-            return count > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-    
-    private boolean existeUsuarioPorTelefono(EntityManager em, String telefono) {
-        if (telefono == null || telefono.trim().isEmpty()) {
-            return false;
-        }
-        
-        try {
-            String jpql = "SELECT COUNT(u) FROM usuario u WHERE u.telefono = :telefono";
-            Long count = em.createQuery(jpql, Long.class)
-                          .setParameter("telefono", telefono)
-                          .getSingleResult();
-            return count > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-    
-    private boolean existeNombreUsuario(EntityManager em, String nombreUsuario) {
-        if (nombreUsuario == null || nombreUsuario.trim().isEmpty()) {
-            return false;
-        }
-        
-        try {
-            String jpql = "SELECT COUNT(t) FROM TokenUsuarioEntity t WHERE t.nombreUsuario = :nombreUsuario";
-            Long count = em.createQuery(jpql, Long.class)
-                          .setParameter("nombreUsuario", nombreUsuario)
-                          .getSingleResult();
-            return count > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 }
 

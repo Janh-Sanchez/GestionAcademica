@@ -2,7 +2,6 @@ package com.presentacion;
 
 import com.dominio.Directivo;
 import com.dominio.Profesor;
-import com.dominio.Rol;
 import com.dominio.Usuario;
 import com.servicios.GestionUsuariosService;
 import com.servicios.ResultadoOperacion;
