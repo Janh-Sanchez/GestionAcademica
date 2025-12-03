@@ -66,4 +66,9 @@ public class UsuarioRepositorio extends RepositorioGenerico<UsuarioEntity>{
             return false;
         }
     }
+
+    // En UsuarioRepositorio.java
+    public EntityManager getEntityManager() {
+        return this.entityManager;
+    }
 }

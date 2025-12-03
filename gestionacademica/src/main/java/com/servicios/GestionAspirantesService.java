@@ -17,18 +17,18 @@ import java.util.stream.Collectors;
 public class GestionAspirantesService {
     
     private final EntityManager entityManager;
-    private final RepositorioGenerico<PreinscripcionEntity> repoPreinscripcion;
+    private final PreinscripcionRepositorio repoPreinscripcion;
     private final RepositorioGenerico<EstudianteEntity> repoEstudiante;
-    private final RepositorioGenerico<AcudienteEntity> repoAcudiente;
+    private final AcudienteRepositorio repoAcudiente;
     private final GrupoRepositorio repoGrupo;
     private final GradoRepositorio repoGrado;
     private final GestionUsuariosService gestionUsuariosService;
     
     public GestionAspirantesService(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.repoPreinscripcion = new RepositorioGenerico<>(entityManager, PreinscripcionEntity.class);
+        this.repoPreinscripcion = new PreinscripcionRepositorio(entityManager);
         this.repoEstudiante = new RepositorioGenerico<>(entityManager, EstudianteEntity.class);
-        this.repoAcudiente = new RepositorioGenerico<>(entityManager, AcudienteEntity.class);
+        this.repoAcudiente = new AcudienteRepositorio(entityManager);
         this.repoGrupo = new GrupoRepositorio(entityManager);
         this.repoGrado = new GradoRepositorio(entityManager);
         this.gestionUsuariosService = new GestionUsuariosService();
@@ -109,18 +109,12 @@ public class GestionAspirantesService {
     }
     
     /**
-     * Obtiene la lista de aspirantes pendientes ordenados por fecha
+     * Obtiene la lista de aspirantes pendientes ordenados por fecha (REFACTORIZADO)
      */
     public ResultadoOperacion obtenerListaAspirantes() {
         try {
-            String jpql = "SELECT p FROM preinscripcion p " +
-                         "WHERE p.estado = :estado " +
-                         "ORDER BY p.fechaRegistro ASC";
-            
-            List<PreinscripcionEntity> preinscripciones = entityManager
-                .createQuery(jpql, PreinscripcionEntity.class)
-                .setParameter("estado", Estado.Pendiente)
-                .getResultList();
+            // Usar el repositorio en lugar de JPQL directo
+            List<PreinscripcionEntity> preinscripciones = repoPreinscripcion.buscarPendientes();
             
             if (preinscripciones.isEmpty()) {
                 return ResultadoOperacion.error("VACIA");
@@ -138,6 +132,10 @@ public class GestionAspirantesService {
         }
     }
     
+    /**
+     * Aprueba un estudiante específico
+     * RF 3.4 - Aprobar aspirante
+     */
     /**
      * Aprueba un estudiante específico
      * RF 3.4 - Aprobar aspirante
@@ -163,26 +161,28 @@ public class GestionAspirantesService {
                 return ResultadoOperacion.error("Acudiente no encontrado");
             }
             
-            // 2. Verificar si el acudiente ya tenía estudiantes aprobados previamente
-            boolean acudienteTieneEstudiantesAprobados = tieneEstudiantesAprobados(acudiente);
+            // 2. Obtener la preinscripción del estudiante
+            PreinscripcionEntity preinscripcion = obtenerPreinscripcionPorEstudiante(estudiante);
             
-            // 3. Si el acudiente NO tenía estudiantes aprobados, aprobarlo también
+            // 3. Verificar si el acudiente ya tenía estudiantes aprobados previamente
+            boolean acudienteTieneEstudiantesAprobados = repoAcudiente.tieneEstudiantesAprobados(acudiente);
+            
+            // 4. Si el acudiente NO tenía estudiantes aprobados, aprobarlo también y generar token
             if (!acudienteTieneEstudiantesAprobados) {
                 acudiente.setEstadoAprobacion(Estado.Aprobada);
                 repoAcudiente.guardar(acudiente);
                 
-                // 4. NO CREAR USUARIO - EL ACUDIENTE YA ES UN USUARIO
-                // El acudiente ya existe en la tabla usuario (heredando o relacionado)
-                // Solo necesitamos actualizar su estado de aprobación
+                // 5. Generar token para el acudiente (crear usuario)
+                generarUsuarioParaAcudiente(acudiente);
                 
                 System.out.println("Acudiente aprobado. ID: " + acudiente.getIdUsuario() + 
                                 ", Correo: " + acudiente.getCorreoElectronico());
             }
             
-            // 5. Aprobar estudiante
+            // 6. Aprobar estudiante
             estudiante.setEstado(Estado.Aprobada);
             
-            // 6. Asignar estudiante a un grupo
+            // 7. Asignar estudiante a un grupo
             ResultadoOperacion resultadoAsignacion = asignarEstudianteAGrupo(estudiante);
             if (!resultadoAsignacion.isExitoso()) {
                 transaction.rollback();
@@ -190,6 +190,11 @@ public class GestionAspirantesService {
             }
             
             repoEstudiante.guardar(estudiante);
+            
+            // 8. Actualizar estado de la preinscripción
+            if (preinscripcion != null) {
+                actualizarEstadoPreinscripcion(preinscripcion);
+            }
             
             transaction.commit();
             return ResultadoOperacion.exito("¡Listo! El estudiante fue aprobado con éxito");
@@ -202,7 +207,7 @@ public class GestionAspirantesService {
             return ResultadoOperacion.error("Error al acceder a la base de datos: " + e.getMessage());
         }
     }
-    
+
     /**
      * Rechaza un estudiante específico
      * RF 3.4 - Rechazar aspirante
@@ -228,18 +233,31 @@ public class GestionAspirantesService {
                 return ResultadoOperacion.error("Acudiente no encontrado");
             }
             
-            // 2. Verificar si el acudiente tiene más estudiantes con estado pendiente
-            boolean tieneEstudiantesPendientes = tieneEstudiantesPendientes(acudiente, idEstudiante);
+            // 2. Obtener la preinscripción del estudiante
+            PreinscripcionEntity preinscripcion = obtenerPreinscripcionPorEstudiante(estudiante);
             
-            // 3. Si NO tiene más estudiantes pendientes, rechazar también al acudiente
-            if (!tieneEstudiantesPendientes) {
+            // 3. Verificar si el acudiente tiene más estudiantes con estado pendiente
+            boolean tieneEstudiantesPendientes = repoAcudiente.tieneEstudiantesPendientes(acudiente, idEstudiante);
+            
+            // 4. Verificar si el acudiente YA tiene estudiantes aprobados
+            boolean tieneEstudiantesAprobados = repoAcudiente.tieneEstudiantesAprobados(acudiente);
+            
+            // 5. Solo rechazar al acudiente si:
+            //    a) NO tiene más estudiantes pendientes
+            //    b) NO tiene estudiantes aprobados
+            if (!tieneEstudiantesPendientes && !tieneEstudiantesAprobados) {
                 acudiente.setEstadoAprobacion(Estado.Rechazada);
                 repoAcudiente.guardar(acudiente);
             }
             
-            // 4. Rechazar estudiante
+            // 6. Rechazar estudiante
             estudiante.setEstado(Estado.Rechazada);
             repoEstudiante.guardar(estudiante);
+            
+            // 7. Actualizar estado de la preinscripción
+            if (preinscripcion != null) {
+                actualizarEstadoPreinscripcion(preinscripcion);
+            }
             
             transaction.commit();
             return ResultadoOperacion.exito("¡Listo! El estudiante fue rechazado con éxito");
@@ -252,9 +270,100 @@ public class GestionAspirantesService {
             return ResultadoOperacion.error("Error al acceder a la base de datos, inténtelo nuevamente");
         }
     }
+
+    // En GestionAspirantesService.java, modificar el método generarUsuarioParaAcudiente
+    /**
+     * Genera y asigna token para un acudiente aprobado
+     */
+    private void generarUsuarioParaAcudiente(AcudienteEntity acudienteEntity) {
+        try {
+            // Verificar si el acudiente ya tiene token
+            if (acudienteEntity.getTokenAccess() != null) {
+                System.out.println("Acudiente ID " + acudienteEntity.getIdUsuario() + 
+                                " ya tiene token asignado");
+                return;
+            }
+            
+            // Convertir a dominio para usar el método de generación de token
+            Acudiente acudiente = DominioAPersistenciaMapper.toDomain(acudienteEntity);
+            
+            // 1. Generar token usando el servicio existente
+            TokenUsuario tokenUsuario = gestionUsuariosService.generarTokenUsuario(acudiente);
+            
+            // 2. Buscar rol de acudiente
+            RolRepositorio rolRepo = new RolRepositorio(entityManager);
+            Optional<RolEntity> rolOpt = rolRepo.buscarPorNombreRol("acudiente");
+            
+            if (rolOpt.isEmpty()) {
+                System.err.println("Error: Rol 'acudiente' no encontrado en la BD");
+                return;
+            }
+            
+            // 3. Configurar el token con el rol
+            Rol rol = DominioAPersistenciaMapper.toDomain(rolOpt.get());
+            tokenUsuario.setRol(rol);
+            
+            // 4. Mapear a entidad y guardar
+            TokenUsuarioEntity tokenEntity = new TokenUsuarioEntity();
+            tokenEntity.setNombreUsuario(tokenUsuario.getNombreUsuario());
+            tokenEntity.setContrasena(tokenUsuario.getContrasena());
+            tokenEntity.setRol(rolOpt.get());
+            
+            // 5. Guardar token
+            TokenUsuarioRepositorio tokenRepo = new TokenUsuarioRepositorio(entityManager);
+            TokenUsuarioEntity tokenGuardado = tokenRepo.guardar(tokenEntity);
+            
+            // 6. Asociar token al acudiente
+            acudienteEntity.setTokenAccess(tokenGuardado);
+            repoAcudiente.guardar(acudienteEntity);
+            
+            // 7. Enviar email con credenciales (si hay EmailService disponible)
+            enviarCredencialesAcudiente(acudienteEntity, tokenUsuario);
+            
+            System.out.println("Token generado para acudiente ID: " + acudienteEntity.getIdUsuario() + 
+                            ", Usuario: " + tokenUsuario.getNombreUsuario());
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error al generar usuario para acudiente: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Envía las credenciales al acudiente
+     */
+    private void enviarCredencialesAcudiente(AcudienteEntity acudiente, TokenUsuario token) {
+        try {
+            // Usar el EmailService de GestionUsuariosService si está disponible
+            // O crear uno propio si no
+            
+            // Construir nombre completo
+            String nombreCompleto = construirNombreCompleto(
+                acudiente.getPrimerNombre(),
+                acudiente.getSegundoNombre(),
+                acudiente.getPrimerApellido(),
+                acudiente.getSegundoApellido()
+            );
+            
+            // Usar el EmailService (necesitaríamos tener acceso a él)
+            // Por ahora, solo imprimir para debug
+            System.out.println("=== CREDENCIALES GENERADAS PARA ACUDIENTE ===");
+            System.out.println("Nombre: " + nombreCompleto);
+            System.out.println("Correo: " + acudiente.getCorreoElectronico());
+            System.out.println("Usuario: " + token.getNombreUsuario());
+            System.out.println("Contraseña: " + token.getContrasena());
+            System.out.println("===========================================");
+            
+            // Si quieres enviar email real, necesitarías inyectar EmailService
+            // emailService.enviarCredenciales(acudiente.getCorreoElectronico(), token, nombreCompleto);
+            
+        } catch (Exception e) {
+            System.err.println("Error al enviar credenciales: " + e.getMessage());
+        }
+    }
     
     /**
-     * Asigna un estudiante a un grupo según las reglas de negocio
+     * Asigna estudiante a un grupo y actualiza estado del grupo
      */
     private ResultadoOperacion asignarEstudianteAGrupo(EstudianteEntity estudiante) {
         try {
@@ -264,41 +373,10 @@ public class GestionAspirantesService {
             
             Integer idGrado = estudiante.getGradoAspira().getIdGrado();
             
-            // Buscar grupos del grado ordenados por número de estudiantes
-            String jpql = "SELECT g FROM grupo g " +
-                         "WHERE g.grado.idGrado = :idGrado " +
-                         "AND g.estado = true " +
-                         "ORDER BY SIZE(g.estudiantes) ASC";
+            // Obtener grupos ordenados
+            List<GrupoEntity> grupos = repoGrupo.buscarActivosPorGradoOrdenadosPorEstudiantes(idGrado);
             
-            List<GrupoEntity> grupos = entityManager
-                .createQuery(jpql, GrupoEntity.class)
-                .setParameter("idGrado", idGrado)
-                .getResultList();
-            
-            GrupoEntity grupoAsignado = null;
-            
-            // Estrategia: Primero llenar grupos hasta el mínimo, luego distribuir
-            for (GrupoEntity grupo : grupos) {
-                Grupo grupoDomain = DominioAPersistenciaMapper.toDomain(grupo);
-                
-                // Si el grupo no ha alcanzado el mínimo, asignar ahí
-                if (!grupoDomain.tieneEstudiantesSuficientes()) {
-                    grupoAsignado = grupo;
-                    break;
-                }
-            }
-            
-            // Si todos tienen el mínimo, buscar uno con disponibilidad
-            if (grupoAsignado == null) {
-                for (GrupoEntity grupo : grupos) {
-                    Grupo grupoDomain = DominioAPersistenciaMapper.toDomain(grupo);
-                    
-                    if (grupoDomain.tieneDisponibilidad()) {
-                        grupoAsignado = grupo;
-                        break;
-                    }
-                }
-            }
+            GrupoEntity grupoAsignado = buscarGrupoDisponible(grupos);
             
             // Si no hay grupos con disponibilidad, crear uno nuevo
             if (grupoAsignado == null) {
@@ -308,6 +386,9 @@ public class GestionAspirantesService {
             // Asignar estudiante al grupo
             estudiante.setGrupo(grupoAsignado);
             
+            // Actualizar estado del grupo según cantidad de estudiantes
+            actualizarEstadoGrupo(grupoAsignado);
+            
             return ResultadoOperacion.exito("Estudiante asignado a grupo");
             
         } catch (Exception e) {
@@ -315,69 +396,148 @@ public class GestionAspirantesService {
             return ResultadoOperacion.error("Error al asignar grupo: " + e.getMessage());
         }
     }
-    
+
     /**
-     * Crea un nuevo grupo para un grado específico
+     * Busca un grupo disponible considerando reglas de negocio
+     */
+    private GrupoEntity buscarGrupoDisponible(List<GrupoEntity> grupos) {
+        if (grupos == null || grupos.isEmpty()) {
+            return null;
+        }
+        
+        // Prioridad 1: Grupos inactivos (estado = false) con menos de 5 estudiantes
+        for (GrupoEntity grupo : grupos) {
+            if (!grupo.isEstado()) { // Grupo inactivo
+                int cantidadEstudiantes = grupo.getEstudiantes() != null ? grupo.getEstudiantes().size() : 0;
+                if (cantidadEstudiantes < 5) {
+                    return grupo;
+                }
+            }
+        }
+        
+        // Prioridad 2: Grupos activos con disponibilidad
+        for (GrupoEntity grupo : grupos) {
+            if (grupo.isEstado()) { // Grupo activo
+                int cantidadEstudiantes = grupo.getEstudiantes() != null ? grupo.getEstudiantes().size() : 0;
+                if (cantidadEstudiantes < 10) { // Máximo 10 estudiantes
+                    return grupo;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Actualiza el estado del grupo basado en cantidad de estudiantes
+     */
+    private void actualizarEstadoGrupo(GrupoEntity grupo) {
+        if (grupo == null) return;
+        
+        int cantidadEstudiantes = grupo.getEstudiantes() != null ? grupo.getEstudiantes().size() : 0;
+        
+        // Regla: Grupo está activo si tiene al menos 5 estudiantes
+        if (cantidadEstudiantes >= 5) {
+            grupo.setEstado(true); // Activo
+        } else {
+            grupo.setEstado(false); // Inactivo
+        }
+        
+        // Guardar cambios
+        repoGrupo.guardar(grupo);
+    }
+
+    /**
+     * Crea un nuevo grupo para un grado específico (inicialmente inactivo)
      */
     private GrupoEntity crearNuevoGrupo(Integer idGrado) throws Exception {
         Optional<GradoEntity> gradoOpt = repoGrado.buscarPorId(idGrado);
         if (gradoOpt.isEmpty()) {
-            throw new Exception("Grado no encontrado");
+            throw new Exception("Grado no encontrado con ID: " + idGrado);
         }
         
         GradoEntity grado = gradoOpt.get();
         
-        // Contar grupos existentes del grado para generar nombre
-        String jpqlCount = "SELECT COUNT(g) FROM grupo g WHERE g.grado.idGrado = :idGrado";
-        Long cantidadGrupos = entityManager
-            .createQuery(jpqlCount, Long.class)
-            .setParameter("idGrado", idGrado)
-            .getSingleResult();
+        // Contar grupos existentes usando el repositorio
+        Long cantidadGrupos = repoGrupo.contarGruposPorGrado(idGrado);
         
-        // Crear nuevo grupo
+        // Generar nombre del grupo
+        String nombreGrupo = generarNombreGrupo(grado, cantidadGrupos);
+        
+        // Crear nuevo grupo (inicialmente inactivo porque tiene 0 estudiantes)
         GrupoEntity nuevoGrupo = new GrupoEntity();
-        nuevoGrupo.setNombreGrupo(grado.getNombreGrado() + "-" + (cantidadGrupos + 1));
-        nuevoGrupo.setEstado(true);
+        nuevoGrupo.setNombreGrupo(nombreGrupo);
+        nuevoGrupo.setEstado(false); // Inactivo hasta tener 5+ estudiantes
         nuevoGrupo.setGrado(grado);
         nuevoGrupo.setEstudiantes(new HashSet<>());
         
         return repoGrupo.guardar(nuevoGrupo);
     }
-    
+
     /**
-     * Verifica si un acudiente tiene estudiantes aprobados
+     * Actualiza el estado de la preinscripción basado en el estado de sus estudiantes
      */
-    private boolean tieneEstudiantesAprobados(AcudienteEntity acudiente) {
-        String jpql = "SELECT COUNT(e) FROM estudiante e " +
-                     "WHERE e.acudiente.idUsuario = :idAcudiente " +
-                     "AND e.estado = :estado";
+    private void actualizarEstadoPreinscripcion(PreinscripcionEntity preinscripcion) {
+        if (preinscripcion == null || preinscripcion.getEstudiantes() == null) {
+            return;
+        }
         
-        Long count = entityManager
-            .createQuery(jpql, Long.class)
-            .setParameter("idAcudiente", acudiente.getIdUsuario())
-            .setParameter("estado", Estado.Aprobada)
-            .getSingleResult();
+        // Contar estudiantes por estado
+        long pendientes = preinscripcion.getEstudiantes().stream()
+            .filter(e -> e.getEstado() == Estado.Pendiente)
+            .count();
         
-        return count > 0;
+        long aprobados = preinscripcion.getEstudiantes().stream()
+            .filter(e -> e.getEstado() == Estado.Aprobada)
+            .count();
+        
+        long rechazados = preinscripcion.getEstudiantes().stream()
+            .filter(e -> e.getEstado() == Estado.Rechazada)
+            .count();
+        
+        long total = preinscripcion.getEstudiantes().size();
+        
+        // Reglas:
+        // 1. Si al menos uno está aprobado → Preinscripción Aprobada
+        // 2. Si todos están rechazados → Preinscripción Rechazada
+        // 3. Si hay pendientes → Preinscripción Pendiente
+        // 4. Si hay mezcla (aprobados + rechazados) → Preinscripción Aprobada (parcial)
+        
+        if (aprobados > 0) {
+            // Al menos un estudiante aprobado
+            preinscripcion.setEstado(Estado.Aprobada);
+        } else if (rechazados == total) {
+            // Todos rechazados
+            preinscripcion.setEstado(Estado.Rechazada);
+        } else if (pendientes > 0) {
+            // Aún hay pendientes
+            preinscripcion.setEstado(Estado.Pendiente);
+        }
+        
+        // Guardar cambios
+        repoPreinscripcion.guardar(preinscripcion);
     }
     
     /**
-     * Verifica si un acudiente tiene más estudiantes pendientes (excepto el indicado)
+     * Genera el nombre del grupo basado en el grado y la cantidad existente
      */
-    private boolean tieneEstudiantesPendientes(AcudienteEntity acudiente, Integer idEstudianteExcluir) {
-        String jpql = "SELECT COUNT(e) FROM estudiante e " +
-                     "WHERE e.acudiente.idUsuario = :idAcudiente " +
-                     "AND e.estado = :estado " +
-                     "AND e.idEstudiante != :idExcluir";
+    private String generarNombreGrupo(GradoEntity grado, Long cantidadGrupos) {
+        return String.format("%s-%d", grado.getNombreGrado(), cantidadGrupos + 1);
+    }
+    
+    /**
+     * Método auxiliar para obtener grupos disponibles para un grado
+     */
+    public List<GrupoEntity> obtenerGruposDisponiblesParaGrado(Integer idGrado) {
+        List<GrupoEntity> grupos = repoGrupo.buscarActivosPorGradoOrdenadosPorEstudiantes(idGrado);
         
-        Long count = entityManager
-            .createQuery(jpql, Long.class)
-            .setParameter("idAcudiente", acudiente.getIdUsuario())
-            .setParameter("estado", Estado.Pendiente)
-            .setParameter("idExcluir", idEstudianteExcluir)
-            .getSingleResult();
-        
-        return count > 0;
+        return grupos.stream()
+            .filter(grupo -> {
+                Grupo grupoDomain = DominioAPersistenciaMapper.toDomain(grupo);
+                return !grupoDomain.tieneEstudiantesSuficientes() || 
+                       grupoDomain.tieneDisponibilidad();
+            })
+            .collect(Collectors.toList());
     }
     
     /**
@@ -433,4 +593,20 @@ public class GestionAspirantesService {
             gestionUsuariosService.cerrar();
         }
     }
+
+    /**
+     * Obtiene la preinscripción de un estudiante
+     */
+    private PreinscripcionEntity obtenerPreinscripcionPorEstudiante(EstudianteEntity estudiante) {
+        try {
+            String jpql = "SELECT p FROM preinscripcion p JOIN p.estudiantes e WHERE e.idEstudiante = :idEstudiante";
+            return entityManager.createQuery(jpql, PreinscripcionEntity.class)
+                .setParameter("idEstudiante", estudiante.getIdEstudiante())
+                .setMaxResults(1)
+                .getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 }

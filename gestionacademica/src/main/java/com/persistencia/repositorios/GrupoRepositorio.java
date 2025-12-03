@@ -51,4 +51,28 @@ public class GrupoRepositorio extends RepositorioGenerico<GrupoEntity> {
             .setParameter("idGrado", idGrado)
             .getResultList();
     }
+
+    /**
+     * Busca grupos activos de un grado ordenados por cantidad de estudiantes
+     */
+    public List<GrupoEntity> buscarActivosPorGradoOrdenadosPorEstudiantes(Integer idGrado) {
+        String jpql = "SELECT g FROM grupo g " +
+                     "WHERE g.grado.idGrado = :idGrado " +
+                     "AND g.estado = true " +
+                     "ORDER BY SIZE(g.estudiantes) ASC";
+        
+        return entityManager.createQuery(jpql, GrupoEntity.class)
+            .setParameter("idGrado", idGrado)
+            .getResultList();
+    }
+
+    /**
+     * Cuenta la cantidad de grupos existentes para un grado
+     */
+    public Long contarGruposPorGrado(Integer idGrado) {
+        String jpql = "SELECT COUNT(g) FROM grupo g WHERE g.grado.idGrado = :idGrado";
+        return entityManager.createQuery(jpql, Long.class)
+            .setParameter("idGrado", idGrado)
+            .getSingleResult();
+    }
 }

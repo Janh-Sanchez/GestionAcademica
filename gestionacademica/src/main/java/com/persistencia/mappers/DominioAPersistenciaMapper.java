@@ -141,6 +141,8 @@ public class DominioAPersistenciaMapper {
         Acudiente acudiente = new Acudiente();
         mapEntityToUsuario(entity, acudiente);
         acudiente.setEstadoAprobacion(entity.getEstadoAprobacion());
+
+        acudiente.setEstudiantes(null);
         
         return acudiente;
     }
@@ -173,7 +175,16 @@ public class DominioAPersistenciaMapper {
         
         if (acudiente != null && entity.getEstudiantes() != null) {
             Set<Estudiante> estudiantes = entity.getEstudiantes().stream()
-                .map(DominioAPersistenciaMapper::toDomainShallow)
+                .map(estEntity -> {
+                    // Crear estudiante con información básica, sin referencia al acudiente
+                    Estudiante estudiante = new Estudiante();
+                    estudiante.setIdEstudiante(estEntity.getIdEstudiante());
+                    estudiante.setPrimerNombre(estEntity.getPrimerNombre());
+                    estudiante.setPrimerApellido(estEntity.getPrimerApellido());
+                    estudiante.setEstado(estEntity.getEstado());
+                    // NO establecer acudiente para evitar ciclos
+                    return estudiante;
+                })
                 .collect(Collectors.toSet());
             acudiente.setEstudiantes(estudiantes);
         }
@@ -323,36 +334,31 @@ public class DominioAPersistenciaMapper {
         estudiante.setEdad(estudianteEntity.getEdad());
         estudiante.setEstado(estudianteEntity.getEstado());
         
+        // Usar una referencia mínima del acudiente para evitar ciclos
         if(estudianteEntity.getAcudiente() != null) {
-            estudiante.setAcudiente(toDomainShallow(estudianteEntity.getAcudiente()));
+            Acudiente acudiente = new Acudiente();
+            acudiente.setIdUsuario(estudianteEntity.getAcudiente().getIdUsuario());
+            acudiente.setPrimerNombre(estudianteEntity.getAcudiente().getPrimerNombre());
+            acudiente.setPrimerApellido(estudianteEntity.getAcudiente().getPrimerApellido());
+            // NO establecer los estudiantes del acudiente aquí
+            acudiente.setEstudiantes(null);
+            estudiante.setAcudiente(acudiente);
         }
+        
         if(estudianteEntity.getGradoAspira() != null) {
             estudiante.setGradoAspira(toDomain(estudianteEntity.getGradoAspira()));
         }
+        
         if(estudianteEntity.getGrupo() != null) {
-            estudiante.setGrupo(toDomain(estudianteEntity.getGrupo()));
-        }
-        if(estudianteEntity.getHojaDeVida() != null) {
-            estudiante.setHojaDeVida(toDomain(estudianteEntity.getHojaDeVida()));
-        }
-        if(estudianteEntity.getObservador() != null) {
-            estudiante.setObservador(toDomain(estudianteEntity.getObservador()));
+            estudiante.setGrupo(toDomainShallow(estudianteEntity.getGrupo()));
         }
         
-        if(estudianteEntity.getLogrosCalificados() != null) {
-            estudiante.setLogrosCalificados(
-                estudianteEntity.getLogrosCalificados().stream()
-                    .map(DominioAPersistenciaMapper::toDomain)
-                    .collect(Collectors.toSet())
-            );
-        }
-        if(estudianteEntity.getBoletines() != null) {
-            estudiante.setBoletines(
-                estudianteEntity.getBoletines().stream()
-                    .map(DominioAPersistenciaMapper::toDomain)
-                    .collect(Collectors.toSet())
-            );
-        }
+        // NO mapear HojaDeVida, Observador, LogrosCalificados ni Boletines para evitar ciclos
+        // Estos se pueden cargar explícitamente cuando se necesiten
+        estudiante.setHojaDeVida(null);
+        estudiante.setObservador(null);
+        estudiante.setLogrosCalificados(null);
+        estudiante.setBoletines(null);
         
         return estudiante;
     }
@@ -371,8 +377,12 @@ public class DominioAPersistenciaMapper {
         e.setEstado(entity.getEstado());
         
         if (entity.getAcudiente() != null) {
-            e.setAcudiente(toDomainShallow(entity.getAcudiente()));
+            Acudiente acudiente = new Acudiente();
+            acudiente.setIdUsuario(entity.getAcudiente().getIdUsuario());
+            // Solo establecer el ID, no convertir completamente
+            e.setAcudiente(acudiente);
         }
+        
         return e;
     }
 
@@ -406,17 +416,22 @@ public class DominioAPersistenciaMapper {
     public static Grado toDomain(GradoEntity entity) {
         if (entity == null) return null;
         
+        // NO mapear bibliotecas ni grupos para evitar ciclos infinitos
+        return new Grado(
+            entity.getIdGrado(),
+            entity.getNombreGrado(),
+            null,  // bibliotecas
+            null   // grupos
+        );
+    }
+    
+    public static Grado toDomainWithBibliotecas(GradoEntity entity) {
+        if (entity == null) return null;
+        
         Set<BibliotecaLogros> bibliotecas = null;
         if (entity.getBibliotecaLogros() != null) {
             bibliotecas = entity.getBibliotecaLogros().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
-                .collect(Collectors.toSet());
-        }
-        
-        Set<Grupo> grupos = null;
-        if (entity.getGrupos() != null) {
-            grupos = entity.getGrupos().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
+                .map(DominioAPersistenciaMapper::toDomainShallowBiblioteca)
                 .collect(Collectors.toSet());
         }
         
@@ -424,7 +439,7 @@ public class DominioAPersistenciaMapper {
             entity.getIdGrado(),
             entity.getNombreGrado(),
             bibliotecas,
-            grupos
+            null  // No incluir grupos para evitar ciclos
         );
     }
 
@@ -459,13 +474,15 @@ public class DominioAPersistenciaMapper {
     public static Grupo toDomain(GrupoEntity entity) {
         if (entity == null) return null;
         
+        // Usar toDomain simple de Grado (sin bibliotecas ni grupos)
         Grado grado = entity.getGrado() != null ? toDomain(entity.getGrado()) : null;
         Profesor profesor = entity.getProfesor() != null ? toDomain(entity.getProfesor()) : null;
         
+        // Usar shallow para estudiantes para evitar ciclos
         Set<Estudiante> estudiantes = null;
         if (entity.getEstudiantes() != null) {
             estudiantes = entity.getEstudiantes().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
+                .map(DominioAPersistenciaMapper::toDomainShallow)
                 .collect(Collectors.toSet());
         }
         
@@ -478,6 +495,19 @@ public class DominioAPersistenciaMapper {
             estudiantes
         );
     }
+
+    public static Grupo toDomainShallow(GrupoEntity entity) {
+    if (entity == null) return null;
+    
+    return new Grupo(
+        entity.getIdGrupo(),
+        entity.getNombreGrupo(),
+        entity.isEstado(),
+        null,  // No establecer grado
+        null,  // No establecer profesor
+        null   // No establecer estudiantes
+    );
+}
 
     // ==================== HOJA DE VIDA ====================
     public static HojaVidaEntity toEntity(HojaVida hojaVida) {
@@ -499,7 +529,8 @@ public class DominioAPersistenciaMapper {
     public static HojaVida toDomain(HojaVidaEntity entity) {
         if (entity == null) return null;
         
-        Estudiante estudiante = entity.getEstudiante() != null ? toDomain(entity.getEstudiante()) : null;
+        // Usar shallow para estudiante para evitar ciclos
+        Estudiante estudiante = entity.getEstudiante() != null ? toDomainShallow(entity.getEstudiante()) : null;
         
         return new HojaVida(
             entity.getIdHojaVida(),
@@ -535,12 +566,13 @@ public class DominioAPersistenciaMapper {
     public static Observador toDomain(ObservadorEntity entity) {
         if (entity == null) return null;
         
-        Estudiante estudiante = entity.getEstudiante() != null ? toDomain(entity.getEstudiante()) : null;
+        // Usar shallow para estudiante para evitar ciclos
+        Estudiante estudiante = entity.getEstudiante() != null ? toDomainShallow(entity.getEstudiante()) : null;
         
         java.util.SortedSet<Observacion> observaciones = null;
         if (entity.getObservaciones() != null) {
             observaciones = entity.getObservaciones().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
+                .map(DominioAPersistenciaMapper::toDomainShallowObservacion)
                 .collect(Collectors.toCollection(java.util.TreeSet::new));
         }
         
@@ -574,15 +606,27 @@ public class DominioAPersistenciaMapper {
     public static Observacion toDomain(ObservacionEntity entity) {
         if (entity == null) return null;
         
-        Observador observador = entity.getObservador() != null ? toDomain(entity.getObservador()) : null;
+        // NO incluir observador para evitar ciclo Observacion->Observador->Observacion
         Profesor profesor = entity.getProfesor() != null ? toDomain(entity.getProfesor()) : null;
         
         return new Observacion(
             entity.getIdObservacion(),
             entity.getDescripcion(),
             entity.getFechaObservacion(),
-            observador,
+            null,  // No incluir observador
             profesor
+        );
+    }
+    
+    public static Observacion toDomainShallowObservacion(ObservacionEntity entity) {
+        if (entity == null) return null;
+        
+        return new Observacion(
+            entity.getIdObservacion(),
+            entity.getDescripcion(),
+            entity.getFechaObservacion(),
+            null,  // No incluir observador
+            null   // No incluir profesor
         );
     }
 
@@ -636,12 +680,29 @@ public class DominioAPersistenciaMapper {
     public static Preinscripcion toDomain(PreinscripcionEntity entity) {
         if (entity == null) return null;
         
-        Acudiente acudiente = entity.getAcudiente() != null ? toDomainShallow(entity.getAcudiente()) : null;
+        Acudiente acudiente = null;
+        if (entity.getAcudiente() != null) {
+            // Usar shallow version, NO toDomainShallow
+            acudiente = new Acudiente();
+            acudiente.setIdUsuario(entity.getAcudiente().getIdUsuario());
+            acudiente.setNuipUsuario(entity.getAcudiente().getNuipUsuario());
+            acudiente.setPrimerNombre(entity.getAcudiente().getPrimerNombre());
+            // Solo campos básicos, NO estudiantes
+        }
         
         HashSet<Estudiante> estudiantes = null;
         if (entity.getEstudiantes() != null) {
+            // Usar toDomainShallow modificado para estudiantes
             estudiantes = entity.getEstudiantes().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
+                .map(entityActual -> {
+                    Estudiante estudiante = new Estudiante();
+                    estudiante.setIdEstudiante(entityActual.getIdEstudiante());
+                    estudiante.setPrimerNombre(entityActual.getPrimerNombre());
+                    estudiante.setPrimerApellido(entityActual.getPrimerApellido());
+                    estudiante.setNuip(entityActual.getNuip());
+                    // NO establecer acudiente aquí para evitar ciclo
+                    return estudiante;
+                })
                 .collect(Collectors.toCollection(HashSet::new));
         }
 
@@ -680,12 +741,14 @@ public class DominioAPersistenciaMapper {
     public static BibliotecaLogros toDomain(BibliotecaLogrosEntity entity) {
         if (entity == null) return null;
         
+        // Usar toDomain simple de Grado (sin bibliotecas ni grupos)
         Grado grado = entity.getGrado() != null ? toDomain(entity.getGrado()) : null;
         
+        // Mapear logros sin incluir de vuelta la biblioteca
         Set<Logro> logros = null;
         if (entity.getLogros() != null) {
             logros = entity.getLogros().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
+                .map(DominioAPersistenciaMapper::toDomainShallowLogro)
                 .collect(Collectors.toSet());
         }
         
@@ -694,6 +757,17 @@ public class DominioAPersistenciaMapper {
             entity.getCategoria(),
             grado,
             logros
+        );
+    }
+    
+    public static BibliotecaLogros toDomainShallowBiblioteca(BibliotecaLogrosEntity entity) {
+        if (entity == null) return null;
+        
+        return new BibliotecaLogros(
+            entity.getIdBibliotecaLogros(),
+            entity.getCategoria(),
+            null,  // No incluir grado
+            null   // No incluir logros
         );
     }
 
@@ -715,13 +789,24 @@ public class DominioAPersistenciaMapper {
     public static Logro toDomain(LogroEntity entity) {
         if (entity == null) return null;
         
+        // Usar shallow para biblioteca para evitar ciclos
         BibliotecaLogros biblioteca = entity.getBibliotecaLogros() != null ? 
-            toDomain(entity.getBibliotecaLogros()) : null;
+            toDomainShallowBiblioteca(entity.getBibliotecaLogros()) : null;
         
         return new Logro(
             entity.getIdLogro(),
             entity.getDescripcion(),
             biblioteca
+        );
+    }
+    
+    public static Logro toDomainShallowLogro(LogroEntity entity) {
+        if (entity == null) return null;
+        
+        return new Logro(
+            entity.getIdLogro(),
+            entity.getDescripcion(),
+            null  // No incluir biblioteca
         );
     }
 
@@ -755,18 +840,32 @@ public class DominioAPersistenciaMapper {
     public static LogroEstudiante toDomain(LogroEstudianteEntity entity) {
         if (entity == null) return null;
         
-        Estudiante estudiante = entity.getEstudiante() != null ? toDomain(entity.getEstudiante()) : null;
-        Boletin boletin = entity.getBoletin() != null ? toDomain(entity.getBoletin()) : null;
-        Logro logro = entity.getLogro() != null ? toDomain(entity.getLogro()) : null;
+        // Usar shallow para evitar ciclos
+        Estudiante estudiante = entity.getEstudiante() != null ? toDomainShallow(entity.getEstudiante()) : null;
+        Logro logro = entity.getLogro() != null ? toDomainShallowLogro(entity.getLogro()) : null;
         Profesor profesor = entity.getProfesor() != null ? toDomain(entity.getProfesor()) : null;
         
+        // NO incluir boletin para evitar ciclo LogroEstudiante->Boletin->LogroEstudiante
         return new LogroEstudiante(
             entity.getIdLogroEstudiante(),
             entity.getFechaCalificacion(),
             estudiante,
-            boletin,
+            null,  // No incluir boletin
             logro,
             profesor
+        );
+    }
+    
+    public static LogroEstudiante toDomainShallowLogroEstudiante(LogroEstudianteEntity entity) {
+        if (entity == null) return null;
+        
+        return new LogroEstudiante(
+            entity.getIdLogroEstudiante(),
+            entity.getFechaCalificacion(),
+            null,  // No incluir estudiante
+            null,  // No incluir boletin
+            null,  // No incluir logro
+            null   // No incluir profesor
         );
     }
 
@@ -797,12 +896,13 @@ public class DominioAPersistenciaMapper {
     public static Boletin toDomain(BoletinEntity entity) {
         if (entity == null) return null;
         
-        Estudiante estudiante = entity.getEstudiante() != null ? toDomain(entity.getEstudiante()) : null;
+        // Usar shallow para estudiante para evitar ciclos
+        Estudiante estudiante = entity.getEstudiante() != null ? toDomainShallow(entity.getEstudiante()) : null;
         
         Set<LogroEstudiante> logrosEstudiante = null;
         if (entity.getLogrosEstudiante() != null) {
             logrosEstudiante = entity.getLogrosEstudiante().stream()
-                .map(DominioAPersistenciaMapper::toDomain)
+                .map(DominioAPersistenciaMapper::toDomainShallowLogroEstudiante)
                 .collect(Collectors.toSet());
         }
         

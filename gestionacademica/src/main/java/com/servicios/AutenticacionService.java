@@ -11,6 +11,7 @@ import com.persistencia.entidades.ProfesorEntity;
 import com.persistencia.entidades.TokenUsuarioEntity;
 import com.persistencia.entidades.UsuarioEntity;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
+import com.persistencia.repositorios.AcudienteRepositorio;
 import com.persistencia.repositorios.TokenUsuarioRepositorio;
 import com.persistencia.repositorios.UsuarioRepositorio;
 
@@ -74,7 +75,7 @@ public class AutenticacionService {
             throw new RuntimeException("Error al acceder a la base de datos: " + e.getMessage(), e);
         }
     }
-
+    
     private Usuario convertirAUsuarioEspecifico(UsuarioEntity usuarioEntity) {
         if (usuarioEntity == null) return null;
         
@@ -86,7 +87,25 @@ public class AutenticacionService {
             case "DirectivoEntity":
                 return DominioAPersistenciaMapper.toDomain((DirectivoEntity) usuarioEntity);
             case "AcudienteEntity":
-                return DominioAPersistenciaMapper.toDomain((AcudienteEntity) usuarioEntity);
+                // Para acudientes, cargar los estudiantes explícitamente
+                AcudienteEntity acudienteEntity = (AcudienteEntity) usuarioEntity;
+                try {
+                    // Obtener el EntityManager del repositorio
+                    AcudienteRepositorio acudienteRepo = new AcudienteRepositorio(
+                        usuarioRepositorio.getEntityManager()); // Necesitarás agregar este método
+                    
+                    // Cargar acudiente con estudiantes
+                    AcudienteEntity acudienteConEstudiantes = acudienteRepo.buscarConEstudiantes(
+                        acudienteEntity.getIdUsuario());
+                    
+                    if (acudienteConEstudiantes != null) {
+                        return DominioAPersistenciaMapper.toDomainComplete(acudienteConEstudiantes);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // Fallback: usar el mapper normal
+                }
+                return DominioAPersistenciaMapper.toDomain(acudienteEntity);
             default:
                 JOptionPane.showMessageDialog(null,
                     "Tipo de usuario no reconocido: " + usuarioEntity.getClass().getSimpleName(),

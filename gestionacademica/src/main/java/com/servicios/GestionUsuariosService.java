@@ -203,8 +203,7 @@ public class GestionUsuariosService {
         }
     }
     
-    // ==================== Métodos privados ====================
-    private TokenUsuario generarTokenUsuario(Usuario usuario) {
+    public TokenUsuario generarTokenUsuario(Usuario usuario) {
         // Validar campos obligatorios
         if (usuario.getPrimerNombre() == null || usuario.getPrimerApellido() == null) {
             throw new IllegalArgumentException("Nombre y apellido son obligatorios");
@@ -240,7 +239,7 @@ public class GestionUsuariosService {
         return token;
     }
 
-    private String normalizarTexto(String texto) {
+    public String normalizarTexto(String texto) {
     if (texto == null || texto.isEmpty()) {
         return texto;
     }
@@ -258,13 +257,13 @@ public class GestionUsuariosService {
         .replace('ü', 'u')
         .replace('ñ', 'n');
     
-    // Eliminar caracteres especiales, mantener solo letras y números
-    normalizado = normalizado.replaceAll("[^a-z0-9]", "");
+        // Eliminar caracteres especiales, mantener solo letras y números
+        normalizado = normalizado.replaceAll("[^a-z0-9]", "");
+        
+        return normalizado;
+    }
     
-    return normalizado;
-}
-    
-    private String generarContrasenaAleatoria() {
+    public String generarContrasenaAleatoria() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$";
         Random random = new Random();
         StringBuilder sb = new StringBuilder(8);
