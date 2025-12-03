@@ -11,6 +11,9 @@ public class UsuarioEntity {
     @Column(name = "id_usuario")
     private Integer idUsuario;
 
+    @Column(name = "nuip_usuario", nullable = false, unique = true)
+    private String nuipUsuario;
+
     @Basic
     @Size(min = 2, max = 30)
     @Pattern(regexp = "^[A-Za-zÁÉÍÓÚáéíóúñÑ]+$", message = "El nombre no debe contener números")
@@ -49,9 +52,11 @@ public class UsuarioEntity {
     @JoinColumn(name = "tokenAccess", referencedColumnName = "id_token", nullable = true)
     private TokenUsuarioEntity tokenAccess;
 
-    // ✅ SOLO getters y setters
+    // SOLO getters y setters
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
+    public String getNuipUsuario() { return nuipUsuario; }
+    public void setNuipUsuario(String nuipUsuario) { this.nuipUsuario = nuipUsuario; }
     public String getPrimerNombre() { return primerNombre; }
     public void setPrimerNombre(String primerNombre) { this.primerNombre = primerNombre; }
     public String getSegundoNombre() { return segundoNombre; }

@@ -6,8 +6,13 @@ import java.awt.event.MouseEvent;
 import java.util.Optional;
 
 import javax.swing.*;
+
+import com.aplicacion.JPAUtil;
 import com.dominio.*;
 import com.servicios.AutenticacionService;
+import com.servicios.PreinscripcionService;
+
+import jakarta.persistence.EntityManager;
 
 public class LoginFrame extends JFrame {
     private JTextField txtUsuario;
@@ -324,6 +329,119 @@ public class LoginFrame extends JFrame {
     }
 
     private void registrarse() {
-        JOptionPane.showMessageDialog(this, "Funcionalidad de registro en desarrollo", "Registro", JOptionPane.INFORMATION_MESSAGE);
+        // Cerrar la ventana de login
+        this.dispose();
+        
+        // Crear y mostrar el formulario de preinscripción
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // 1. Obtener EntityManager usando tu fábrica JPAUtil
+                EntityManager entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
+                
+                // 2. Instanciar el servicio de preinscripción pasando el EntityManager
+                PreinscripcionService preinscripcionService = new PreinscripcionService(entityManager);
+                
+                // 3. Crear y mostrar el frame de preinscripción
+                PreinscripcionFrame preinscripcionFrame = new PreinscripcionFrame(preinscripcionService);
+                
+                // 4. Mostrar el formulario de preinscripción en una ventana contenedora
+                crearVentanaPreinscripcion(preinscripcionFrame, entityManager);
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, 
+                    "Error al abrir el formulario de preinscripción: " + e.getMessage(),
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+                
+                // Volver a mostrar el login si hay error
+                new LoginFrame(autenticacionService).setVisible(true);
+            }
+        });
+    }
+
+    private void crearVentanaPreinscripcion(PreinscripcionFrame preinscripcionFrame, EntityManager entityManager) {
+        JFrame frameContenedor = new JFrame("Formulario de Preinscripción");
+        frameContenedor.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frameContenedor.setSize(900, 600);
+        frameContenedor.setLocationRelativeTo(null);
+        
+        // Agregar WindowListener para cerrar el EntityManager cuando se cierre la ventana
+        frameContenedor.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                if (entityManager != null && entityManager.isOpen()) {
+                    entityManager.close();
+                }
+                // Opcional: Volver al login
+                new LoginFrame(autenticacionService).setVisible(true);
+            }
+            
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                // Preguntar si realmente quiere salir
+                int respuesta = JOptionPane.showConfirmDialog(
+                    frameContenedor,
+                    "¿Está seguro que desea salir? Los datos no guardados se perderán.",
+                    "Confirmar salida",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+                );
+                
+                if (respuesta == JOptionPane.YES_OPTION) {
+                    frameContenedor.dispose();
+                }
+            }
+        });
+        
+        frameContenedor.add(crearPanelPreinscripcion(preinscripcionFrame));
+        frameContenedor.setVisible(true);
+    }
+
+    private JPanel crearPanelPreinscripcion(PreinscripcionFrame preinscripcionFrame) {
+        JPanel panel = new JPanel(new BorderLayout());
+        
+        // Botón para abrir el formulario
+        JButton btnAbrirFormulario = new JButton("Comenzar Preinscripción");
+        btnAbrirFormulario.addActionListener(e -> {
+            preinscripcionFrame.mostrarFormularioPreinscripcion();
+        });
+        
+        // Panel de bienvenida
+        JPanel panelBienvenida = new JPanel(new BorderLayout());
+        panelBienvenida.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
+        
+        JLabel lblTitulo = new JLabel("<html><h1>Preinscripción para Nuevos Estudiantes</h1></html>", 
+                                    SwingConstants.CENTER);
+        JLabel lblInstrucciones = new JLabel(
+            "<html><center><p>Haz clic en el botón para comenzar el proceso de preinscripción</p>" +
+            "<p>Podrás registrar hasta 4 estudiantes por acudiente</p>" +
+            "<p><b>Requisitos:</b></p>" +
+            "<ul style='text-align: left;'>" +
+            "<li>Acudiente mayor de 18 años</li>" +
+            "<li>Estudiantes entre 3 y 18 años</li>" +
+            "<li>Documentos de identificación válidos</li>" +
+            "</ul></center></html>",
+            SwingConstants.CENTER
+        );
+        
+        panelBienvenida.add(lblTitulo, BorderLayout.NORTH);
+        panelBienvenida.add(lblInstrucciones, BorderLayout.CENTER);
+        panelBienvenida.add(btnAbrirFormulario, BorderLayout.SOUTH);
+        
+        panel.add(panelBienvenida, BorderLayout.CENTER);
+        
+        // Botón para volver al login
+        JButton btnVolver = new JButton("Volver al Login");
+        btnVolver.addActionListener(e -> {
+            ((JFrame) SwingUtilities.getWindowAncestor(panel)).dispose();
+            new LoginFrame(autenticacionService).setVisible(true);
+        });
+        
+        JPanel panelInferior = new JPanel();
+        panelInferior.add(btnVolver);
+        panel.add(panelInferior, BorderLayout.SOUTH);
+        
+        return panel;
     }
 }

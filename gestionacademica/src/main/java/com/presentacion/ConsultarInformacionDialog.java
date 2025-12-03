@@ -181,6 +181,9 @@ public class ConsultarInformacionDialog extends JDialog {
         panelInformacion.add(crearCampoInfo("Nombre completo:", usuario.obtenerNombreCompleto()));
         panelInformacion.add(Box.createVerticalStrut(15));
         
+        panelInformacion.add(crearCampoInfo("Nuip:", usuario.getNuipUsuario()));
+        panelInformacion.add(Box.createVerticalStrut(15));
+
         panelInformacion.add(crearCampoInfo("Edad:", usuario.getEdad() != null ? usuario.getEdad() + " años" : null));
         panelInformacion.add(Box.createVerticalStrut(15));
         

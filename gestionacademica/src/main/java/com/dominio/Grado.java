@@ -15,6 +15,10 @@ public class Grado{
         this.grupos = grupos;
     }
 
+    public Grado() {
+        //TODO Auto-generated constructor stub
+    }
+
     public Integer getIdGrado() {
         return idGrado;
     }

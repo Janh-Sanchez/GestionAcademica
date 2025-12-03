@@ -32,6 +32,7 @@ public class CrearUsuarioFrame extends JFrame {
     private JTextField txtSegundoNombre;
     private JTextField txtPrimerApellido;
     private JTextField txtSegundoApellido;
+    private JTextField txtNuipUsuario;
     private JTextField txtEdad;
     private JTextField txtCorreo;
     private JTextField txtTelefono;
@@ -42,6 +43,7 @@ public class CrearUsuarioFrame extends JFrame {
     private JLabel lblErrorEdad;
     private JLabel lblErrorCorreo;
     private JLabel lblErrorTelefono;
+    private JLabel lblErrorNuip;
     
     private boolean datosModificados = false;
     
@@ -127,6 +129,10 @@ public class CrearUsuarioFrame extends JFrame {
         
         panel.add(crearCampoTexto("Segundo Apellido", txtSegundoApellido = new JTextField(), 
                                  null, false));
+        panel.add(Box.createVerticalStrut(15));
+
+        panel.add(crearCampoTexto("Nuip", txtNuipUsuario = new JTextField(), 
+                                 lblErrorNuip, true));
         panel.add(Box.createVerticalStrut(15));
         
         panel.add(crearCampoTexto("Edad (*)", txtEdad = new JTextField(), 
@@ -248,7 +254,12 @@ public class CrearUsuarioFrame extends JFrame {
                 mostrarError(lblError, "Formato inválido");
                 return;
             }
-        } else if (nombreCampo.contains("Edad")) {
+        } else if(nombreCampo.contains("Nuip")){
+            if (!valor.isEmpty() && !validarNuip(valor)){
+                mostrarError(lblError, "Formato invalido, el usuario debe tener 10 digitos");
+            }
+        } 
+        else if (nombreCampo.contains("Edad")) {
             if (!valor.isEmpty() && !validarNumero(valor)) {
                 mostrarError(lblError, "Formato inválido");
                 return;
@@ -339,6 +350,7 @@ public class CrearUsuarioFrame extends JFrame {
     
     private Usuario recopilarDatos() {
         // Recopilar datos comunes (sin ID, JPA lo generará al persistir)
+        String nuipUsuario = txtNuipUsuario.getText().trim();
         String primerNombre = txtPrimerNombre.getText().trim();
         String segundoNombre = txtSegundoNombre.getText().trim().isEmpty() ? null : txtSegundoNombre.getText().trim();
         String primerApellido = txtPrimerApellido.getText().trim();
@@ -355,6 +367,7 @@ public class CrearUsuarioFrame extends JFrame {
             // Crear Profesor (sin ID ni TokenUsuario, el servicio los generará)
             usuario = new Profesor(
                 null,  // ID será generado por JPA
+                nuipUsuario,
                 primerNombre,
                 segundoNombre,
                 primerApellido,
@@ -370,6 +383,7 @@ public class CrearUsuarioFrame extends JFrame {
             // Crear Directivo
             usuario = new Directivo(
                 null,  // ID será generado por JPA
+                nuipUsuario,
                 primerNombre,
                 segundoNombre,
                 primerApellido,
@@ -383,6 +397,7 @@ public class CrearUsuarioFrame extends JFrame {
             // Fallback: crear Usuario base (no debería ocurrir si el combo está bien configurado)
             usuario = new Usuario(
                 null,
+                nuipUsuario,
                 primerNombre,
                 segundoNombre,
                 primerApellido,
@@ -564,4 +579,9 @@ public class CrearUsuarioFrame extends JFrame {
     private boolean validarTelefono(String telefono) {
         return telefono.matches("\\d{7,15}");
     }
+
+    private boolean validarNuip(String nuip) {
+        // Validar que sea exactamente 10 dígitos y solo números
+        return nuip.matches("\\d{10}");
+}
 }

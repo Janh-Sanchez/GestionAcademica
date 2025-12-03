@@ -2,6 +2,7 @@ package com.dominio;
 
 public class Usuario {
     private Integer idUsuario;
+    private String nuipUsuario;
     private String primerNombre;
     private String segundoNombre;
     private String primerApellido;
@@ -11,10 +12,11 @@ public class Usuario {
     private String telefono;
     private TokenUsuario tokenAccess;
 
-    public Usuario(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido,
+    public Usuario(Integer idUsuario, String nuipUsuario, String primerNombre, String segundoNombre, String primerApellido,
             String segundoApellido, int edad, String correoElectronico, String telefono,
             TokenUsuario tokenAccess){
         this.idUsuario = idUsuario;
+        this.nuipUsuario = nuipUsuario;
         this.primerNombre = primerNombre;
         this.segundoNombre = segundoNombre;
         this.primerApellido = primerApellido;
@@ -43,6 +45,8 @@ public class Usuario {
     // Getters y Setters
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
+    public String getNuipUsuario() { return nuipUsuario; }
+    public void setNuipUsuario(String nuipUsuario) { this.nuipUsuario = nuipUsuario; }
     public String getPrimerNombre() { return primerNombre; }
     public void setPrimerNombre(String primerNombre) { this.primerNombre = primerNombre; }
     public String getSegundoNombre() { return segundoNombre; }

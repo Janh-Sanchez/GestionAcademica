@@ -2,10 +2,10 @@ package com.dominio;
 
 public class Profesor extends Usuario{
     private Grupo grupoAsignado;
-	public Profesor(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido, 
+	public Profesor(Integer idUsuario, String nuipUsuario, String primerNombre, String segundoNombre, String primerApellido, 
         String segundoApellido, int edad, String correoElectronico, String telefono, TokenUsuario tokenAccess,
         Grupo grupoAsignado){
-		super(idUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, edad, correoElectronico, telefono, tokenAccess);
+		super(idUsuario, nuipUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, edad, correoElectronico, telefono, tokenAccess);
         this.grupoAsignado = grupoAsignado;
 	}
 

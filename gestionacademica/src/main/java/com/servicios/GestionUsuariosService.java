@@ -4,10 +4,10 @@ import com.dominio.*;
 import com.persistencia.repositorios.*;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
 import com.persistencia.entidades.*;
+import com.aplicacion.JPAUtil;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
 
 import java.util.Optional;
 import java.util.Random;
@@ -15,123 +15,146 @@ import java.util.Random;
 /**
  * Servicio de gestión de usuarios - Capa de Servicios
  * Responsabilidad: Casos de uso, orquestación transaccional, coordinación de entidades
- * CU 2.1, CU 2.3, CU 2.4
  */
 public class GestionUsuariosService {
-    
-private final EntityManagerFactory emf;
+    private final EntityManager em;
     private final UsuarioRepositorio repositorioUsuario;
-    private final RolRepositorio repositorioRol; // ✅ Nuevo repositorio
+    private final RolRepositorio repositorioRol;
+    private final TokenUsuarioRepositorio repositorioTokenUsuario;
     private final EmailService emailService;
-    
+
     public GestionUsuariosService() {
-        this.emf = Persistence.createEntityManagerFactory("GestionAcademica");
-        EntityManager em = emf.createEntityManager();
-        
+        EntityManagerFactory emf = JPAUtil.getEntityManagerFactory();
+        this.em = emf.createEntityManager();
         this.repositorioUsuario = new UsuarioRepositorio(em);
-        this.repositorioRol = new RolRepositorio(em); // ✅ Inicializar
+        this.repositorioRol = new RolRepositorio(em);
+        this.repositorioTokenUsuario = new TokenUsuarioRepositorio(em);
         this.emailService = new EmailService();
     }
     
     /**
-     * CU 2.3 - Crear usuario
-     * Versión modificada para aceptar nombre de rol en lugar de objeto Rol
+     * CU 2.3 - Crear usuario con transacción única
      */
     public ResultadoOperacion crearUsuario(Usuario usuario, String nombreRol) {
-        EntityManager em = emf.createEntityManager();
-        
         try {
+            // 1. INICIAR TRANSACCIÓN (única para todo el caso de uso)
             em.getTransaction().begin();
             
-            // Buscar el rol por nombre
-            Optional<RolEntity> rolEntityOpt = repositorioRol.buscarPorNombreRol(nombreRol.toLowerCase());
-            System.out.println(rolEntityOpt);
-            
-            if (rolEntityOpt.isEmpty()) {
-                return ResultadoOperacion.error("El rol '" + nombreRol + "' no existe en el sistema");
+            try {
+                // 2. Validaciones de negocio (dentro de la transacción)
+                
+                // 2.1 Validar rol
+                Optional<RolEntity> rolEntityOpt = repositorioRol.buscarPorNombreRol(nombreRol.toLowerCase());
+                if (rolEntityOpt.isEmpty()) {
+                    em.getTransaction().rollback();
+                    return ResultadoOperacion.error("El rol '" + nombreRol + "' no existe en el sistema");
+                }
+                RolEntity rolEntity = rolEntityOpt.get();
+                
+                // 2.2 Validar duplicados
+                if (repositorioUsuario.existePorCorreo(usuario.getCorreoElectronico())) {
+                    em.getTransaction().rollback();
+                    return ResultadoOperacion.error("Ya existe un usuario con ese correo electrónico");
+                }
+                
+                if (repositorioUsuario.existePorTelefono(usuario.getTelefono())) {
+                    em.getTransaction().rollback();
+                    return ResultadoOperacion.error("Ya existe un usuario con ese número de teléfono");
+                }
+                
+                // 3. Generar token (lógica de negocio)
+                TokenUsuario tokenUsuario = generarTokenUsuario(usuario);
+                Rol rol = DominioAPersistenciaMapper.toDomain(rolEntity);
+                tokenUsuario.setRol(rol);
+                usuario.setTokenAccess(tokenUsuario);
+                
+                // 4. Mapear a entidades
+                TokenUsuarioEntity tokenEntity = new TokenUsuarioEntity();
+                tokenEntity.setNombreUsuario(tokenUsuario.getNombreUsuario());
+                tokenEntity.setContrasena(tokenUsuario.getContrasena());
+                tokenEntity.setRol(rolEntity);
+                
+                // 5. Persistir usando repositorios (TODO dentro de la misma transacción)
+                repositorioTokenUsuario.guardar(tokenEntity);
+                
+                // 6. Crear y guardar usuario según el tipo
+                UsuarioEntity usuarioEntity = null;
+                String tipoUsuario = usuario.getClass().getSimpleName();
+                
+                switch (tipoUsuario) {
+                    case "Profesor":
+                        Profesor profesor = (Profesor) usuario;
+                        ProfesorEntity profesorEntity = DominioAPersistenciaMapper.toEntity(profesor);
+                        profesorEntity.setTokenAccess(tokenEntity);
+                        repositorioUsuario.guardar(profesorEntity);
+                        usuarioEntity = profesorEntity;
+                        usuario.setIdUsuario(profesorEntity.getIdUsuario());
+                        break;
+                        
+                    case "Directivo":
+                        Directivo directivo = (Directivo) usuario;
+                        DirectivoEntity directivoEntity = DominioAPersistenciaMapper.toEntity(directivo);
+                        directivoEntity.setTokenAccess(tokenEntity);
+                        repositorioUsuario.guardar(directivoEntity);
+                        usuarioEntity = directivoEntity;
+                        usuario.setIdUsuario(directivoEntity.getIdUsuario());
+                        break;
+                }
+                
+                // 7. CONFIRMAR TRANSACCIÓN (todo se persiste aquí)
+                em.getTransaction().commit();
+                
+                // 8. Operaciones fuera de la transacción (envío de email)
+                if (usuario.getCorreoElectronico() != null && !usuario.getCorreoElectronico().isEmpty()) {
+                    emailService.enviarCredenciales(
+                        usuario.getCorreoElectronico(), 
+                        tokenUsuario, 
+                        usuario.obtenerNombreCompleto()
+                    );
+                }
+                
+                return ResultadoOperacion.exito("Usuario creado exitosamente", usuario);
+                
+            } catch (Exception e) {
+                // Rollback si hay error en la lógica de negocio
+                if (em.getTransaction().isActive()) {
+                    em.getTransaction().rollback();
+                }
+                throw e; // Re-lanzar para manejo en el catch externo
             }
-            
-            RolEntity rolEntity = rolEntityOpt.get();
-            
-            // Validar duplicados de email y teléfono
-            if (repositorioUsuario.existePorCorreo(usuario.getCorreoElectronico())) {
-                return ResultadoOperacion.error("Ya existe un usuario con ese correo electrónico");
-            }
-            
-            if (repositorioUsuario.existePorTelefono(usuario.getTelefono())) {
-                return ResultadoOperacion.error("Ya existe un usuario con ese número de teléfono");
-            }
-            
-            // Generar token de usuario
-            TokenUsuario tokenUsuario = generarTokenUsuario(usuario);
-            
-            Rol rol = DominioAPersistenciaMapper.toDomain(rolEntity);
-            tokenUsuario.setRol(rol);
-            usuario.setTokenAccess(tokenUsuario);
-            
-            // Crear tokenEntity con el rol asociado
-            TokenUsuarioEntity tokenEntity = new TokenUsuarioEntity();
-            tokenEntity.setNombreUsuario(tokenUsuario.getNombreUsuario());
-            tokenEntity.setContrasena(tokenUsuario.getContrasena());
-            tokenEntity.setRol(rolEntity); // RolEntity ya managed por JPA
-            
-            em.persist(tokenEntity);
-            
-            // Crear entidad según el tipo de usuario
-            UsuarioEntity usuarioEntity = null;
-            String tipoUsuario = usuario.getClass().getSimpleName();
-            
-            switch (tipoUsuario) {
-                case "Profesor":
-                    Profesor profesor = (Profesor) usuario;
-                    ProfesorEntity profesorEntity = DominioAPersistenciaMapper.toEntity(profesor);
-                    
-                    // Asignar el tokenEntity ya persistido**
-                    profesorEntity.setTokenAccess(tokenEntity);
-                    
-                    em.persist(profesorEntity);
-                    usuarioEntity = profesorEntity;
-                    break;
-                    
-                case "Directivo":
-                    Directivo directivo = (Directivo) usuario;
-                    DirectivoEntity directivoEntity = DominioAPersistenciaMapper.toEntity(directivo);
-                    
-                    // Asignar el tokenEntity ya persistido**
-                    directivoEntity.setTokenAccess(tokenEntity);
-                    
-                    em.persist(directivoEntity);
-                    usuarioEntity = directivoEntity;
-                    break;
-            }
-            
-            em.getTransaction().commit();
-            
-            // Enviar credenciales por correo
-            if (usuario.getCorreoElectronico() != null && !usuario.getCorreoElectronico().isEmpty()) {
-                emailService.enviarCredenciales(
-                    usuario.getCorreoElectronico(), 
-                    tokenUsuario, 
-                    usuario.obtenerNombreCompleto()
-                );
-            }
-            
-            return ResultadoOperacion.exito("Usuario creado exitosamente", usuario);
             
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
             e.printStackTrace();
             return ResultadoOperacion.error("Error al crear usuario: " + e.getMessage());
-        } finally {
-            em.close();
+        }
+    }
+    
+    /**
+     * CU 2.4 - Consultar información de usuario (solo lectura)
+     */
+    public ResultadoOperacion consultarUsuario(Integer usuarioId) {
+        try {
+            if (usuarioId == null) {
+                return ResultadoOperacion.error("ID de usuario no válido");
+            }
+            
+            Optional<UsuarioEntity> usuarioEntityOpt = repositorioUsuario.buscarPorId(usuarioId);
+            
+            if (usuarioEntityOpt.isEmpty()) {
+                return ResultadoOperacion.error("Usuario no encontrado");
+            }
+            
+            Usuario usuario = mapearEntidadADominio(usuarioEntityOpt.get());
+            return ResultadoOperacion.exito("Consulta exitosa", usuario);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultadoOperacion.error("Error al consultar usuario: " + e.getMessage());
         }
     }
 
     /**
      * CU 2.4 - Consultar información del usuario autenticado
-     * Método específico para el caso de uso 2.4 (Mi Información)
      */
     public ResultadoOperacion consultarMiInformacion(Usuario usuarioAutenticado) {
         if (usuarioAutenticado == null) {
@@ -142,49 +165,27 @@ private final EntityManagerFactory emf;
             return ResultadoOperacion.error("ID de usuario no válido");
         }
         
-        // Usar el ID del usuario autenticado para consultar
         return consultarUsuario(usuarioAutenticado.getIdUsuario());
     }
     
     /**
-     * CU 2.4 - Consultar información de usuario
-     * Recupera la información completa de un usuario por su ID
+     * Método para cerrar el EntityManager cuando ya no se necesite
+     * Útil para el constructor por defecto
      */
-    public ResultadoOperacion consultarUsuario(Integer usuarioId) {
-        EntityManager em = emf.createEntityManager();
-        
-        try {
-            if (usuarioId == null) {
-                return ResultadoOperacion.error("ID de usuario no válido");
-            }
-            
-            Optional<UsuarioEntity> usuarioEntityOpt = repositorioUsuario.buscarPorIdOpt(usuarioId);
-            
-            if (usuarioEntityOpt.isEmpty()) {
-                return ResultadoOperacion.error("Usuario no encontrado");
-            }
-            
-            // Se delega todo al mapperEspecializado
-            Usuario usuario = mapearEntidadADominio(usuarioEntityOpt.get());
-            
-            return ResultadoOperacion.exito("Consulta exitosa", usuario);
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResultadoOperacion.error("Error al consultar usuario: " + e.getMessage());
-        } finally {
+    public void cerrar() {
+        if (em != null && em.isOpen()) {
             em.close();
         }
     }
     
-    // Metodo que DELEGA completamente al mapper
+    // ==================== MÉTODOS PRIVADOS ====================
+    
     private Usuario mapearEntidadADominio(UsuarioEntity usuarioEntity) {
         if (usuarioEntity == null) {
             return null;
         }
         
         try {
-            // Usar el método apropiado del mapper existente
             if (usuarioEntity instanceof ProfesorEntity) {
                 return DominioAPersistenciaMapper.toDomainComplete((ProfesorEntity) usuarioEntity);
             } else if (usuarioEntity instanceof DirectivoEntity) {
@@ -195,7 +196,7 @@ private final EntityManagerFactory emf;
                 return DominioAPersistenciaMapper.toDomainComplete((AcudienteEntity) usuarioEntity);
             }
             
-            return null; // No debería llegar aquí
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;

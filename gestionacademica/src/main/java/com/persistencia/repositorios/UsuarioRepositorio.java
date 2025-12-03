@@ -31,7 +31,7 @@ public class UsuarioRepositorio extends RepositorioGenerico<UsuarioEntity>{
     public boolean existePorCorreo(String correoElectronico) {
         try {
             String jpql = "SELECT 1 FROM usuario u WHERE u.correoElectronico = :correoElectronico";
-            getEntityManager().createQuery(jpql, Integer.class)
+            entityManager.createQuery(jpql, Integer.class)
                             .setParameter("correoElectronico", correoElectronico)
                             .setMaxResults(1)
                             .getSingleResult();
@@ -44,8 +44,21 @@ public class UsuarioRepositorio extends RepositorioGenerico<UsuarioEntity>{
     public boolean existePorTelefono(String telefono) {
         try {
             String jpql = "SELECT 1 FROM usuario u WHERE u.telefono = :telefono";
-            getEntityManager().createQuery(jpql, Integer.class)
+            entityManager.createQuery(jpql, Integer.class)
                             .setParameter("telefono", telefono)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    public boolean existePorNuip(String nuipUsuario) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.nuipUsuario = :nuipUsuario";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("nuipUsuario", nuipUsuario)
                             .setMaxResults(1)
                             .getSingleResult();
             return true;
